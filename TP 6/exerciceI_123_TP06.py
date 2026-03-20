@@ -27,4 +27,3 @@ if mot_de_passe == "pYth0n123*%?":
     print("Accès autorisé")
 else:    print("Accès refusé")
 """
-

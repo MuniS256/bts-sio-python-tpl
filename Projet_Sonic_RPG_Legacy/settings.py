@@ -1,8 +1,8 @@
 # settings.py
 
 # Sprite
-SONIC_SPRITE = "assets/images/sonic.png"
-ENEMY_SPRITE = "assets/images/eclipse.png"
+SONIC_SPRITE = "Projet_Sonic_RPG_Legacy/assets/images/sonic.png"
+ENEMY_SPRITE = "Projet_Sonic_RPG_Legacy/assets/images/eclipse.png"
 
 # Paramètres globaux
 WIDTH = 1280

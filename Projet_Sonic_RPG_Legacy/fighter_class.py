@@ -1,5 +1,5 @@
 # fighter_class.py
-
+"""
 class Fighter:
     def __init__(self, name, hp, attack, energy):
         self.name = name
@@ -20,3 +20,16 @@ class Fighter:
         self.hp += amount
         if self.hp > self.max_hp:
             self.hp = self.max_hp
+"""
+import pygame
+
+class Fighter:
+    def __init__(self, name, hp, attack, energy, image_path):
+        self.name = name
+        self.max_hp = hp
+        self.hp = hp
+        self.attack = attack
+        self.energy = energy
+        # Chargement de l'image
+        self.image = pygame.image.load(image_path)
+        self.image = pygame.transform.scale(self.image, (150, 150)) # Redimensionner

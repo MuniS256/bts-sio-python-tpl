@@ -1,5 +1,5 @@
 # battle.py
-
+"""
 class Battle:
     def __init__(self, player, enemy):
         self.player = player
@@ -43,3 +43,12 @@ class Battle:
                 self.player_attack()
             else:
                 self.enemy_attack()
+"""
+class Battle:
+    def __init__(self, player, enemy):
+        self.player = player
+        self.enemy = enemy
+
+    def player_attack(self):
+        self.enemy.hp -= self.player.attack
+        if self.enemy.hp < 0: self.enemy.hp = 0

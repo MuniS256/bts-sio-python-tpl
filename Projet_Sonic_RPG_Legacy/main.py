@@ -21,38 +21,53 @@ import pygame
 import sys
 from settings import *
 from fighter_class import Fighter
-from ui import draw_hp_bar
+from ui import draw_hp_bar # Assure-toi que le nom correspond à ton fichier ui.py
 
+# 1. INITIALISATION
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Sonic RPG Legacy")
 clock = pygame.time.Clock()
 
-# Initialisation
-player = Fighter("Sonic", 100, 20, 50, SONIC_SPRITE)
-boss = Fighter("Eclipse", 120, 15, 50, ENEMY_SPRITE)
+# 2. CRÉATION DES PERSONNAGES
+# Note : On ajoute x=100, y=300 pour la position de départ
+player = Fighter("Sonic", 100, 20, 50, SONIC_SPRITE, 100, 300)
+boss = Fighter("Eclipse", 120, 15, 50, ENEMY_SPRITE, 550, 300)
 
+# 3. BOUCLE DE JEU
 running = True
 while running:
-    # 1. Gestion des événements
+    # --- A. Gestion des événements (Entrées utilisateur) ---
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE: # Attaque avec Espace
-                boss.hp -= player.attack
+            # Si on appuie sur ESPACE et que Sonic n'est pas déjà en train de bouger
+            if event.key == pygame.K_SPACE and not player.is_attacking:
+                player.is_attacking = True
+                player.target_x = boss.x - 50 # Sonic fonce devant l'ennemi
+                boss.hp -= player.attack      # On retire les PV direct
+                if boss.hp < 0: boss.hp = 0
 
-    # 2. Dessin
-    screen.fill(BLACK) # Fond
+    # --- B. Mise à jour de la logique (Calculs) ---
+    player.update() # Gère le mouvement de Sonic
+    boss.update()   # Gère le mouvement de l'ennemi (si besoin)
+
+    # --- C. Affichage (Dessin) ---
+    screen.fill(BLACK) # On efface l'écran précédent
     
-    # Affichage des sprites
-    screen.blit(player.image, (100, 300))
-    screen.blit(boss.image, (500, 300))
+    # On dessine les images aux coordonnées actuelles (qui changent pendant l'attaque)
+    screen.blit(player.image, (player.x, player.y))
+    screen.blit(boss.image, (boss.x, boss.y))
     
-    # Affichage des barres de vie
+    # On dessine l'interface par-dessus
     draw_hp_bar(screen, 100, 250, player.hp, player.max_hp)
     draw_hp_bar(screen, 500, 250, boss.hp, boss.max_hp)
 
+    # --- D. Rafraîchissement ---
     pygame.display.flip()
     clock.tick(FPS)
 
 pygame.quit()
+sys.exit()

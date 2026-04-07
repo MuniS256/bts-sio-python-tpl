@@ -25,13 +25,13 @@ from ui import draw_hp_bar, draw_text
 
 # 1. INITIALISATION
 pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT)) # Utilise 1280x720 de settings.py
+screen = pygame.display.set_mode((WIDTH, HEIGHT)) 
 pygame.display.set_caption("Sonic RPG Legacy")
 clock = pygame.time.Clock()
 
 # --- CHARGEMENT DU BACKGROUND ---
 try:
-    # L'image sera automatiquement étirée en 1280x720
+    # Utilisation de ton nouveau fond : c_hill_zone.png
     background = pygame.image.load("Projet_Sonic_RPG_Legacy/assets/images/c_hill_zone.png").convert()
     background = pygame.transform.scale(background, (WIDTH, HEIGHT))
 except:
@@ -39,8 +39,6 @@ except:
     background.fill((20, 40, 20))
 
 # 2. CRÉATION DES PERSONNAGES
-# Ajustement des positions pour le 1280x720 :
-# Sonic à gauche (x=200), Eclipse à droite (x=900), et les deux plus bas (y=400)
 player = Fighter("Sonic", 100, 20, 50, SONIC_SPRITE, 200, 400)
 boss = Fighter("Eclipse", 120, 15, 50, ENEMY_SPRITE, 900, 400)
 
@@ -52,7 +50,7 @@ menu_index = 0
 options = ["ATTACK", "MAGIC", "SPECIAL"]
 winner = None 
 
-# Polices (Un peu plus grandes pour la HD)
+# Polices (Contour géré par draw_text dans ui.py)
 font_interface = pygame.font.SysFont("Arial", 28, bold=True)
 font_tour = pygame.font.SysFont("Arial", 40, bold=True)
 font_menu = pygame.font.SysFont("Verdana", 26, bold=True)
@@ -84,7 +82,7 @@ while running:
                 elif event.key == pygame.K_SPACE or event.key == pygame.K_RETURN:
                     if menu_index == 0: 
                         player.is_attacking = True
-                        player.target_x = boss.x - 100 # S'arrête un peu avant car l'écran est grand
+                        player.target_x = boss.x - 100 
                         has_hit = False 
                         game_state = "PLAYER_ATTACKING"
 
@@ -134,17 +132,21 @@ while running:
     player.update(dt)
     boss.update(dt)
 
+    # 1. Le Fond
     screen.blit(background, (0, 0)) 
+    
+    # 2. Les Sprites
     player.draw(screen)
     boss.draw(screen)
     
-    # UI FLOTTANTE (Ajustée pour la nouvelle résolution)
+    # 3. UI FLOTTANTE (Avec contour noir automatique)
     draw_hp_bar(screen, player.x, player.y - 50, player.hp, player.max_hp)
     draw_text(player.name, font_interface, WHITE, screen, player.x + 80, player.y - 65)
     
     draw_hp_bar(screen, boss.x, boss.y - 50, boss.hp, boss.max_hp)
     draw_text(boss.name, font_interface, RED, screen, boss.x + 80, boss.y - 65)
 
+    # 4. ÉCRANS ET MENUS
     if game_state == "GAME_OVER":
         overlay = pygame.Surface((WIDTH, HEIGHT))
         overlay.set_alpha(200)
@@ -153,11 +155,12 @@ while running:
         
         msg = "VICTOIRE !" if winner == "SONIC" else "GAME OVER..."
         color = GREEN if winner == "SONIC" else RED
+        # Le contour rend ce message très "Impactant" au centre
         draw_text(msg, font_tour, color, screen, WIDTH // 2, HEIGHT // 2 - 50)
         draw_text("APPUYEZ SUR 'R' POUR REJOUER", font_interface, WHITE, screen, WIDTH // 2, HEIGHT // 2 + 50)
 
     elif game_state == "PLAYER_TURN":
-        # Menu décalé un peu plus dans le coin avec la nouvelle taille
+        # Cadre du menu
         menu_rect = pygame.Rect(50, HEIGHT - 180, 220, 140)
         pygame.draw.rect(screen, (0, 0, 120), menu_rect, border_radius=12)
         pygame.draw.rect(screen, WHITE, menu_rect, 3, border_radius=12)
@@ -165,7 +168,8 @@ while running:
         for i, option in enumerate(options):
             txt_color = WHITE if i == menu_index else GRAY
             prefix = "> " if i == menu_index else "  "
-            draw_text(prefix + option, font_menu, txt_color, screen, 140, HEIGHT - 145 + (i * 40))
+            # Les options du menu sont maintenant bien lisibles grâce au contour
+            draw_text(prefix + option, font_menu, txt_color, screen, 160, HEIGHT - 145 + (i * 40))
         
         draw_text("CHOISIS TON ACTION", font_tour, WHITE, screen, WIDTH // 2, 80)
 

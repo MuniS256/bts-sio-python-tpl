@@ -33,13 +33,10 @@ clock = pygame.time.Clock()
 player = Fighter("Sonic", 100, 20, 50, SONIC_SPRITE, 100, 300)
 boss = Fighter("Eclipse", 120, 15, 50, ENEMY_SPRITE, 550, 300)
 
-# Variable pour empêcher de frapper 50 fois par seconde pendant la collision
+# Variables de contrôle
 has_hit = False
-
-# --- Etats du jeu ---
-# "PLAYER_TURN", "PLAYER_ATTACKING", "ENEMY_TURN", "ENEMY_ATTACKING"
 game_state = "PLAYER_TURN" 
-wait_timer = 0 # Pour laisser une petite pause entre les actions
+wait_timer = 0 
 
 # 3. BOUCLE DE JEU
 running = True
@@ -52,77 +49,66 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         
-        # On ne peut attaquer QUE si c'est le tour du joueur et qu'il est immobile
+        # Action du joueur
         if game_state == "PLAYER_TURN":
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                if event.key == pygame.K_SPACE and not player.is_attacking:
-                    player.is_attacking = True
-                    player.target_x = boss.x - 50
-                    has_hit = False # On réinitialise pour la nouvelle attaque
-                    game_state = "PLAYER_ATTACKING"
+                player.is_attacking = True
+                player.target_x = boss.x - 50
+                has_hit = False 
+                game_state = "PLAYER_ATTACKING"
 
-# --- B. LOGIQUE DES TOURS ---
+    # --- C. LOGIQUE DES TOURS & COLLISION ---
     
-    # 1. Si Sonic a fini son attaque et est revenu à sa place
-    if game_state == "PLAYER_ATTACKING" and not player.is_attacking and player.x == player.original_x:
-        wait_timer += dt
-        if wait_timer >= 1.0: # Pause de 1 seconde pour le suspense
-            game_state = "ENEMY_TURN"
-            wait_timer = 0
+    # 1. État : Sonic attaque
+    if game_state == "PLAYER_ATTACKING":
+        if not has_hit and player.rect.colliderect(boss.rect):
+            boss.take_damage(player.attack)
+            has_hit = True
+            player.is_attacking = False # Retour immédiat après impact
+            
+        # Si Sonic est revenu à sa place après l'impact
+        if not player.is_attacking and player.x == player.original_x:
+            wait_timer += dt
+            if wait_timer >= 1.0:
+                game_state = "ENEMY_TURN"
+                wait_timer = 0
 
-    # 2. Tour d'Eclipse (L'IA décide d'attaquer)
+    # 2. État : Tour d'Eclipse (L'IA lance l'attaque)
     if game_state == "ENEMY_TURN":
         boss.is_attacking = True
-        boss.target_x = player.x + 80 # Eclipse fonce vers la gauche !
+        boss.target_x = player.x + 80 
         has_hit = False
         game_state = "ENEMY_ATTACKING"
 
-    # 3. Si Eclipse a fini son attaque
-    if game_state == "ENEMY_ATTACKING" and not boss.is_attacking and boss.x == boss.original_x:
-        wait_timer += dt
-        if wait_timer >= 1.0:
-            game_state = "PLAYER_TURN"
-            wait_timer = 0
+    # 3. État : Eclipse attaque
+    if game_state == "ENEMY_ATTACKING":
+        if not has_hit and boss.rect.colliderect(player.rect):
+            player.take_damage(boss.attack)
+            has_hit = True
+            boss.is_attacking = False # Retour immédiat
+            
+        # Si Eclipse est revenu à sa place
+        if not boss.is_attacking and boss.x == boss.original_x:
+            wait_timer += dt
+            if wait_timer >= 1.0:
+                game_state = "PLAYER_TURN"
+                wait_timer = 0
 
-    # --- C. COLLISIONS (Mise à jour) ---
-    if player.is_attacking and not has_hit and player.rect.colliderect(boss.rect):
-        boss.take_damage(player.attack)
-        has_hit = True
-        player.is_attacking = False # Il repart direct après l'impact
-
-    if boss.is_attacking and not has_hit and boss.rect.colliderect(player.rect):
-        player.take_damage(boss.attack)
-        has_hit = True
-        boss.is_attacking = False
-
-    # C. Mise à jour de la logique
+    # --- D. MISE À JOUR ET AFFICHAGE ---
+    
+    # Mise à jour de la logique des classes
     player.update(dt)
     boss.update(dt)
 
-    screen.fill(BLACK)
-    player.draw(screen)
-    boss.draw(screen)
-    # ... (tes barres de vie)
-    pygame.display.flip()
-
-    # --- GESTION DE LA COLLISION ET DE L'IMPACT ---
-    if player.is_attacking and not has_hit:
-        if player.rect.colliderect(boss.rect):
-            boss.take_damage(player.attack) # Dégâts + Flash Rouge
-            has_hit = True                  # On bloque pour cette attaque
-            # On peut même forcer Sonic à arrêter son dash ici
-            player.is_attacking = False 
-
-    # D. Affichage
+    # Dessin
     screen.fill(BLACK) 
     
-    # On utilise les méthodes draw() pour gérer le flash rouge automatiquement
     player.draw(screen)
     boss.draw(screen)
     
-    # Interface
-    draw_hp_bar(screen, 100, 250, player.hp, player.max_hp)
-    draw_hp_bar(screen, 500, 250, boss.hp, boss.max_hp)
+    # Interface (Fixe en haut)
+    draw_hp_bar(screen, 50, 50, player.hp, player.max_hp) 
+    draw_hp_bar(screen, 550, 50, boss.hp, boss.max_hp) 
 
     pygame.display.flip()
 

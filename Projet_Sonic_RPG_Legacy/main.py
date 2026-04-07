@@ -49,7 +49,7 @@ while running:
             if event.key == pygame.K_SPACE and not player.is_attacking:
                 player.is_attacking = True
                 player.target_x = boss.x - 50 # Sonic fonce devant l'ennemi
-                boss.hp -= player.attack      # On retire les PV direct
+                boss.take_damage(player.attack)      # On retire les PV direct
                 if boss.hp < 0: boss.hp = 0
 
     # --- B. Mise à jour de la logique (Calculs) ---
@@ -67,7 +67,7 @@ while running:
     # On dessine l'interface par-dessus
     draw_hp_bar(screen, 100, 250, player.hp, player.max_hp)
     draw_hp_bar(screen, 500, 250, boss.hp, boss.max_hp)
-    
+
     # --- D. Rafraîchissement ---
     pygame.display.flip()
 

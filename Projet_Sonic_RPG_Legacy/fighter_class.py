@@ -33,7 +33,8 @@ class Fighter:
         self.hp = hp
         self.attack = attack
         self.energy = energy
-        
+        self.rect = self.image.get_rect()
+
         # Positionnement
         self.x = x
         self.y = y
@@ -52,6 +53,9 @@ class Fighter:
             # On charge l'image originale
             self.image = pygame.image.load(image_path).convert_alpha()
             self.image = pygame.transform.scale(self.image, (150, 150))
+
+            self.rect = self.image.get_rect() # Crée un rectangle de la taille de l'image
+            self.rect.topleft = (x, y)       # Place le rectangle au bon endroit
             
             # Création de la version "Flash Rouge"
             # On crée une surface de la même taille remplie de rouge
@@ -98,6 +102,8 @@ class Fighter:
                 self.x -= 8  # Vitesse de retour (plus lent pour le style)
             if self.x < self.original_x:
                 self.x = self.original_x
+        
+        self.rect.topleft = (self.x, self.y)
 
     def draw(self, screen):
         """Affiche le perso ou son flash rouge"""

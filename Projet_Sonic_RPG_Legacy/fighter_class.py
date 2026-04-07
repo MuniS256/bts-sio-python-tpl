@@ -1,27 +1,3 @@
-# fighter_class.py
-"""
-class Fighter:
-    def __init__(self, name, hp, attack, energy):
-        self.name = name
-        self.max_hp = hp
-        self.hp = hp
-        self.attack = attack
-        self.energy = energy
-        self.is_guarding = False
-
-    def take_damage(self, amount):
-        if self.is_guarding:
-            amount = int(amount * 0.5)
-        self.hp -= amount
-        if self.hp < 0:
-            self.hp = 0
-
-    def heal(self, amount):
-        self.hp += amount
-        if self.hp > self.max_hp:
-            self.hp = self.max_hp
-"""
-
 import pygame
 import os
 
@@ -32,6 +8,10 @@ class Fighter:
         self.hp = hp
         self.attack = attack
         self.energy = energy
+        
+        # --- 2B : Animation de la barre de vie ---
+        # 'display_hp' va rattraper 'hp' doucement pour l'effet visuel
+        self.display_hp = hp
         
         # Positionnement
         self.x = x
@@ -72,11 +52,17 @@ class Fighter:
         self.flash_timer = self.flash_duration
 
     def update(self, dt):
-        """Gère les mouvements (Dash/Retour) et les timers"""
+        """Gère les mouvements, les timers et l'animation de la barre de vie"""
         
         # 1. Gestion du chrono du flash
         if self.flash_timer > 0:
             self.flash_timer -= dt
+
+        # --- 2B : ANIMATION DE GLISSEMENT ---
+        # La barre de vie affichée rattrape la vraie vie petit à petit
+        # 0.1 est le facteur de lissage (plus c'est petit, plus c'est lent)
+        smoothing_factor = 0.1
+        self.display_hp += (self.hp - self.display_hp) * smoothing_factor
 
         # 2. LOGIQUE DU MOUVEMENT
         if self.is_attacking:
@@ -87,8 +73,6 @@ class Fighter:
             # Vérification si on a atteint ou dépassé la cible
             if (direction == 1 and self.x >= self.target_x) or (direction == -1 and self.x <= self.target_x):
                 self.x = self.target_x
-                # On ne met PAS is_attacking à False ici, 
-                # c'est le main.py qui le fera lors de la collision !
         else:
             # --- PHASE DE REPOS (Retour vers l'origine) ---
             if abs(self.x - self.original_x) > 5:

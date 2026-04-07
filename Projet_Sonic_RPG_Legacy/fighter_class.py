@@ -21,12 +21,7 @@ class Fighter:
         if self.hp > self.max_hp:
             self.hp = self.max_hp
 """
-# main.py
-import pygame
-import sys
-from settings import *
-from fighter_class import Fighter
-from ui import draw_hp_bar # Assure-toi que le nom correspond
+
 
 import pygame
 import os

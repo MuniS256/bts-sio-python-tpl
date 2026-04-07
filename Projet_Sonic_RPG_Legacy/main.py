@@ -21,8 +21,7 @@ import pygame
 import sys
 from settings import *
 from fighter_class import Fighter
-from ui import draw_hp_bar
-from ui import draw_text
+from ui import draw_hp_bar, draw_text
 
 # 1. INITIALISATION
 pygame.init()
@@ -39,13 +38,13 @@ has_hit = False
 game_state = "PLAYER_TURN" 
 wait_timer = 0 
 
-# Choix de la police (Nom, Taille)
-font_interface = pygame.font.SysFont("Arial", 32, bold=True)
+# Police pour les noms et l'interface
+font_interface = pygame.font.SysFont("Arial", 24, bold=True)
+font_tour = pygame.font.SysFont("Arial", 32, bold=True)
 
 # 3. BOUCLE DE JEU
 running = True
 while running:
-    # A. Gestion du temps (Delta Time)
     dt = clock.tick(FPS) / 1000.0 
 
     # B. Événements
@@ -53,7 +52,6 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         
-        # Action du joueur
         if game_state == "PLAYER_TURN":
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 player.is_attacking = True
@@ -62,36 +60,30 @@ while running:
                 game_state = "PLAYER_ATTACKING"
 
     # --- C. LOGIQUE DES TOURS & COLLISION ---
-    
-    # 1. État : Sonic attaque
     if game_state == "PLAYER_ATTACKING":
         if not has_hit and player.rect.colliderect(boss.rect):
             boss.take_damage(player.attack)
             has_hit = True
-            player.is_attacking = False # Retour immédiat après impact
+            player.is_attacking = False 
             
-        # Si Sonic est revenu à sa place après l'impact
         if not player.is_attacking and player.x == player.original_x:
             wait_timer += dt
             if wait_timer >= 1.0:
                 game_state = "ENEMY_TURN"
                 wait_timer = 0
 
-    # 2. État : Tour d'Eclipse (L'IA lance l'attaque)
     if game_state == "ENEMY_TURN":
         boss.is_attacking = True
         boss.target_x = player.x + 80 
         has_hit = False
         game_state = "ENEMY_ATTACKING"
 
-    # 3. État : Eclipse attaque
     if game_state == "ENEMY_ATTACKING":
         if not has_hit and boss.rect.colliderect(player.rect):
             player.take_damage(boss.attack)
             has_hit = True
-            boss.is_attacking = False # Retour immédiat
+            boss.is_attacking = False 
             
-        # Si Eclipse est revenu à sa place
         if not boss.is_attacking and boss.x == boss.original_x:
             wait_timer += dt
             if wait_timer >= 1.0:
@@ -99,26 +91,30 @@ while running:
                 wait_timer = 0
 
     # --- D. MISE À JOUR ET AFFICHAGE ---
-    
-    # Mise à jour de la logique des classes
     player.update(dt)
     boss.update(dt)
 
-    # Dessin
     screen.fill(BLACK) 
     
     player.draw(screen)
     boss.draw(screen)
     
-    # Interface (Fixe en haut)
-    draw_hp_bar(screen, 50, 50, player.hp, player.max_hp) 
-    draw_hp_bar(screen, 550, 50, boss.hp, boss.max_hp) 
+    # --- UI FLOTTANTE (Suit les personnages) ---
+    
+    # Barre et Nom de Sonic
+    # On décale de -40 en Y pour être au-dessus de la tête
+    draw_hp_bar(screen, player.x, player.y - 40, player.hp, player.max_hp)
+    draw_text(player.name, font_interface, WHITE, screen, player.x + 75, player.y - 55)
 
-# --- Affichage du message de tour ---
+    # Barre et Nom d'Eclipse
+    draw_hp_bar(screen, boss.x, boss.y - 40, boss.hp, boss.max_hp)
+    draw_text(boss.name, font_interface, RED, screen, boss.x + 75, boss.y - 55)
+
+    # --- MESSAGE DE TOUR (En bas au centre pour libérer le haut) ---
     if game_state == "PLAYER_TURN":
-        draw_text("À TOI DE JOUER !", font_interface, WHITE, screen, WIDTH // 2, 150)
+        draw_text("À TOI DE JOUER !", font_tour, WHITE, screen, WIDTH // 2, HEIGHT - 100)
     elif game_state == "ENEMY_TURN" or game_state == "ENEMY_ATTACKING":
-        draw_text("TOUR D'ECLIPSE...", font_interface, RED, screen, WIDTH // 2, 150)
+        draw_text("TOUR D'ECLIPSE...", font_tour, RED, screen, WIDTH // 2, HEIGHT - 100)
 
     pygame.display.flip()
 

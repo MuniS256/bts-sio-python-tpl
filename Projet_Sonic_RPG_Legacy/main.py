@@ -32,7 +32,7 @@ clock = pygame.time.Clock()
 # --- CHARGEMENT DU BACKGROUND ---
 try:
     # L'image sera automatiquement étirée en 1280x720
-    background = pygame.image.load("Projet_Sonic_RPG_Legacy/assets/images/foret.png").convert()
+    background = pygame.image.load("Projet_Sonic_RPG_Legacy/assets/images/c_hill_zone.png").convert()
     background = pygame.transform.scale(background, (WIDTH, HEIGHT))
 except:
     background = pygame.Surface((WIDTH, HEIGHT))

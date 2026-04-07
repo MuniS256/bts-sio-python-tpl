@@ -82,15 +82,48 @@ class Fighter:
 
         # 2. Logique du mouvement d'attaque (Dash)
         if self.is_attacking:
-            if self.x < self.target_x:
-                self.x += 20  # Vitesse d'aller
+            # Calcul de la direction (1 si droite, -1 si gauche)
+            direction = 1 if self.x < self.target_x else -1
+            self.x += 20 * direction
+
+            # Vérification de l'arrivée (si on a dépassé ou atteint la cible)
+            if (direction == 1 and self.x >= self.target_x) or (direction == -1 and self.x <= self.target_x):
+                self.x = self.target_x
+                self.is_attacking = False
+        else:
+            # Retour progressif
+            if abs(self.x - self.original_x) > 5:
+                direction_retour = 1 if self.x < self.original_x else -1
+                self.x += 8 * direction_retour
             else:
-                self.is_attacking = False # Cible atteinte
+                self.x = self.original_x
+        
+        # IMPORTANT : On met à jour le rectangle de collision
+        self.rect.topleft = (self.x, self.y)
+
+            # Si on est à gauche de la cible (cas de Sonic), on augmente X
+        if self.x < self.target_x:
+                self.x += 20
+                if self.x >= self.target_x: # On est arrivé
+                    self.x = self.target_x
+                    self.is_attacking = False
+
+            # Si on est à droite de la cible (cas d'Eclipse), on diminue X
+        elif self.x > self.target_x:
+                self.x -= 20
+                if self.x <= self.target_x: # On est arrivé
+                    self.x = self.target_x
+                    self.is_attacking = False
+
         else:
             # Retour à la position d'origine
-            if self.x > self.original_x:
-                self.x -= 8
             if self.x < self.original_x:
+                self.x += 8 # Revient vers la droite
+            elif self.x > self.original_x:
+                self.x -= 8 # Revient vers la gauche
+
+            # Correction finale pour éviter de trembler sur place
+            if abs(self.x - self.original_x) < 8:
                 self.x = self.original_x
         
         # 3. Synchronisation du rectangle de collision avec la position visuelle

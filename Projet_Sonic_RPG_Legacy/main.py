@@ -22,6 +22,7 @@ import sys
 from settings import *
 from fighter_class import Fighter
 from ui import draw_hp_bar
+from ui import draw_text
 
 # 1. INITIALISATION
 pygame.init()
@@ -37,6 +38,9 @@ boss = Fighter("Eclipse", 120, 15, 50, ENEMY_SPRITE, 550, 300)
 has_hit = False
 game_state = "PLAYER_TURN" 
 wait_timer = 0 
+
+# Choix de la police (Nom, Taille)
+font_interface = pygame.font.SysFont("Arial", 32, bold=True)
 
 # 3. BOUCLE DE JEU
 running = True
@@ -109,6 +113,12 @@ while running:
     # Interface (Fixe en haut)
     draw_hp_bar(screen, 50, 50, player.hp, player.max_hp) 
     draw_hp_bar(screen, 550, 50, boss.hp, boss.max_hp) 
+
+# --- Affichage du message de tour ---
+    if game_state == "PLAYER_TURN":
+        draw_text("À TOI DE JOUER !", font_interface, WHITE, screen, WIDTH // 2, 150)
+    elif game_state == "ENEMY_TURN" or game_state == "ENEMY_ATTACKING":
+        draw_text("TOUR D'ECLIPSE...", font_interface, RED, screen, WIDTH // 2, 150)
 
     pygame.display.flip()
 

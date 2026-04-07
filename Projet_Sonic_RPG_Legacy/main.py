@@ -61,8 +61,7 @@ if player.is_attacking and player.rect.colliderect(boss.rect):
             if event.key == pygame.K_SPACE and not player.is_attacking:
                 player.is_attacking = True
                 player.target_x = boss.x - 50 # Sonic fonce devant l'ennemi
-                has_hit = False
-
+                boss.hp -= player.attack      # On retire les PV direct
                 if boss.hp < 0: boss.hp = 0
 
     # --- B. Mise à jour de la logique (Calculs) ---

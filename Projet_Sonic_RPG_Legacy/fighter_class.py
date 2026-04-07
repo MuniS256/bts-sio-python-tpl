@@ -33,9 +33,8 @@ class Fighter:
         self.hp = hp
         self.attack = attack
         self.energy = energy
-        self.rect = self.image.get_rect()
-
-        # Positionnement
+        
+        # Positionnement (On définit x et y AVANT le reste)
         self.x = x
         self.y = y
         self.original_x = x
@@ -43,43 +42,36 @@ class Fighter:
         
         # États d'animation
         self.is_attacking = False
-        
-        # Gestion du Flash Rouge (Damage Feedback)
         self.flash_timer = 0
-        self.flash_duration = 0.15  # Le flash dure 150 millisecondes
-        
-        # Chargement de l'image
+        self.flash_duration = 0.15 
+
+        # --- CHARGEMENT DE L'IMAGE ---
         try:
-            # On charge l'image originale
+            # On charge l'image
             self.image = pygame.image.load(image_path).convert_alpha()
             self.image = pygame.transform.scale(self.image, (150, 150))
-
-            self.rect = self.image.get_rect() # Crée un rectangle de la taille de l'image
-            self.rect.topleft = (x, y)       # Place le rectangle au bon endroit
             
-            # Création de la version "Flash Rouge"
-            # On crée une surface de la même taille remplie de rouge
-            self.flash_image = pygame.Surface(self.image.get_size()).convert_alpha()
-            self.flash_image.fill((255, 0, 0)) # Rouge pur
-            
-            # On utilise un masque pour que le rouge ne s'affiche que sur le perso (pas le vide)
+            # Création du Flash Rouge (Masque)
             mask = pygame.mask.from_surface(self.image)
             self.flash_image = mask.to_surface(setcolor=(255, 0, 0), unsetcolor=(0, 0, 0, 0))
             
         except Exception as e:
             print(f"Erreur chargement image {image_path}: {e}")
-            # Carré de secours si l'image est manquante
+            # Image de secours (Surface bleue)
             self.image = pygame.Surface((150, 150))
             self.image.fill((0, 0, 255))
-            self.flash_image = self.image.copy()
+            self.flash_image = pygame.Surface((150, 150))
             self.flash_image.fill((255, 0, 0))
 
+        # --- CRÉATION DU RECT (Après que l'image soit définie) ---
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (self.x, self.y)
+
     def take_damage(self, amount):
-        """Appelée quand le perso reçoit un coup"""
+        """Déclenche les dégâts et le flash visuel"""
         self.hp -= amount
         if self.hp < 0:
             self.hp = 0
-        # On déclenche le chrono du flash
         self.flash_timer = self.flash_duration
 
     def update(self, dt):
@@ -90,19 +82,18 @@ class Fighter:
 
         # 2. Logique du mouvement d'attaque (Dash)
         if self.is_attacking:
-            # On fonce vers la cible
             if self.x < self.target_x:
                 self.x += 20  # Vitesse d'aller
             else:
-                # Une fois arrivé, on arrête l'attaque
-                self.is_attacking = False
+                self.is_attacking = False # Cible atteinte
         else:
             # Retour à la position d'origine
             if self.x > self.original_x:
-                self.x -= 8  # Vitesse de retour (plus lent pour le style)
+                self.x -= 8
             if self.x < self.original_x:
                 self.x = self.original_x
         
+        # 3. Synchronisation du rectangle de collision avec la position visuelle
         self.rect.topleft = (self.x, self.y)
 
     def draw(self, screen):

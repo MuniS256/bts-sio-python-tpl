@@ -25,13 +25,24 @@ from ui import draw_hp_bar, draw_text
 
 # 1. INITIALISATION
 pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+screen = pygame.display.set_mode((WIDTH, HEIGHT)) # Utilise 1280x720 de settings.py
 pygame.display.set_caption("Sonic RPG Legacy")
 clock = pygame.time.Clock()
 
+# --- CHARGEMENT DU BACKGROUND ---
+try:
+    # L'image sera automatiquement étirée en 1280x720
+    background = pygame.image.load("Projet_Sonic_RPG_Legacy/assets/images/foret.png").convert()
+    background = pygame.transform.scale(background, (WIDTH, HEIGHT))
+except:
+    background = pygame.Surface((WIDTH, HEIGHT))
+    background.fill((20, 40, 20))
+
 # 2. CRÉATION DES PERSONNAGES
-player = Fighter("Sonic", 100, 20, 50, SONIC_SPRITE, 100, 300)
-boss = Fighter("Eclipse", 120, 15, 50, ENEMY_SPRITE, 550, 300)
+# Ajustement des positions pour le 1280x720 :
+# Sonic à gauche (x=200), Eclipse à droite (x=900), et les deux plus bas (y=400)
+player = Fighter("Sonic", 100, 20, 50, SONIC_SPRITE, 200, 400)
+boss = Fighter("Eclipse", 120, 15, 50, ENEMY_SPRITE, 900, 400)
 
 # Variables de contrôle
 has_hit = False
@@ -39,27 +50,24 @@ game_state = "PLAYER_TURN"
 wait_timer = 0 
 menu_index = 0 
 options = ["ATTACK", "MAGIC", "SPECIAL"]
-winner = None # Pour savoir qui a gagné à la fin
+winner = None 
 
-# Polices
-font_interface = pygame.font.SysFont("Arial", 24, bold=True)
-font_tour = pygame.font.SysFont("Arial", 32, bold=True)
-font_menu = pygame.font.SysFont("Verdana", 22, bold=True)
+# Polices (Un peu plus grandes pour la HD)
+font_interface = pygame.font.SysFont("Arial", 28, bold=True)
+font_tour = pygame.font.SysFont("Arial", 40, bold=True)
+font_menu = pygame.font.SysFont("Verdana", 26, bold=True)
 
 # 3. BOUCLE DE JEU
 running = True
 while running:
     dt = clock.tick(FPS) / 1000.0 
 
-    # B. Événements
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         
-        # --- LOGIQUE RESTART (Si GAME OVER) ---
         if game_state == "GAME_OVER":
             if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
-                # Réinitialisation complète
                 player.hp = player.max_hp
                 boss.hp = boss.max_hp
                 player.x, player.y = player.original_x, player.original_y
@@ -67,7 +75,6 @@ while running:
                 game_state = "PLAYER_TURN"
                 winner = None
 
-        # --- LOGIQUE MENU JOUEUR ---
         if game_state == "PLAYER_TURN":
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
@@ -77,11 +84,11 @@ while running:
                 elif event.key == pygame.K_SPACE or event.key == pygame.K_RETURN:
                     if menu_index == 0: 
                         player.is_attacking = True
-                        player.target_x = boss.x - 50
+                        player.target_x = boss.x - 100 # S'arrête un peu avant car l'écran est grand
                         has_hit = False 
                         game_state = "PLAYER_ATTACKING"
 
-    # --- C. LOGIQUE DES TOURS & COLLISIONS ---
+    # --- LOGIQUE TOURS & COLLISIONS ---
     if game_state == "PLAYER_ATTACKING":
         if not has_hit and player.rect.colliderect(boss.rect):
             boss.take_damage(player.attack)
@@ -90,7 +97,7 @@ while running:
             
         if not player.is_attacking and player.x == player.original_x:
             wait_timer += dt
-            if wait_timer >= 1.0:
+            if wait_timer >= 0.8:
                 game_state = "ENEMY_TURN"
                 wait_timer = 0
 
@@ -98,7 +105,7 @@ while running:
         wait_timer += dt
         if wait_timer >= 0.7:
             boss.is_attacking = True
-            boss.target_x = player.x + 80 
+            boss.target_x = player.x + 100 
             has_hit = False
             game_state = "ENEMY_ATTACKING"
             wait_timer = 0
@@ -111,11 +118,10 @@ while running:
             
         if not boss.is_attacking and boss.x == boss.original_x:
             wait_timer += dt
-            if wait_timer >= 1.0:
+            if wait_timer >= 0.8:
                 game_state = "PLAYER_TURN"
                 wait_timer = 0
 
-    # --- CHECK MORT (Vérification constante) ---
     if game_state != "GAME_OVER":
         if player.hp <= 0:
             game_state = "GAME_OVER"
@@ -124,52 +130,47 @@ while running:
             game_state = "GAME_OVER"
             winner = "SONIC"
 
-    # --- D. MISE À JOUR ET AFFICHAGE ---
+    # --- AFFICHAGE ---
     player.update(dt)
     boss.update(dt)
 
-    screen.fill(BLACK) 
+    screen.blit(background, (0, 0)) 
     player.draw(screen)
     boss.draw(screen)
     
-    # UI FLOTTANTE
-    draw_hp_bar(screen, player.x, player.y - 40, player.hp, player.max_hp)
-    draw_text(player.name, font_interface, WHITE, screen, player.x + 75, player.y - 55)
-    draw_hp_bar(screen, boss.x, boss.y - 40, boss.hp, boss.max_hp)
-    draw_text(boss.name, font_interface, RED, screen, boss.x + 75, boss.y - 55)
+    # UI FLOTTANTE (Ajustée pour la nouvelle résolution)
+    draw_hp_bar(screen, player.x, player.y - 50, player.hp, player.max_hp)
+    draw_text(player.name, font_interface, WHITE, screen, player.x + 80, player.y - 65)
+    
+    draw_hp_bar(screen, boss.x, boss.y - 50, boss.hp, boss.max_hp)
+    draw_text(boss.name, font_interface, RED, screen, boss.x + 80, boss.y - 65)
 
-    # --- AFFICHAGE MENU OU ECRAN DE FIN ---
     if game_state == "GAME_OVER":
-        # Voile noir transparent
         overlay = pygame.Surface((WIDTH, HEIGHT))
-        overlay.set_alpha(180)
-        overlay.fill((0, 0, 0))
+        overlay.set_alpha(200)
+        overlay.fill(BLACK)
         screen.blit(overlay, (0,0))
         
-        if winner == "SONIC":
-            draw_text("VICTOIRE !", font_tour, (0, 255, 0), screen, WIDTH // 2, HEIGHT // 2 - 50)
-            draw_text("ECLIPSE EST VAINCU", font_interface, WHITE, screen, WIDTH // 2, HEIGHT // 2 + 20)
-        else:
-            draw_text("GAME OVER...", font_tour, RED, screen, WIDTH // 2, HEIGHT // 2 - 50)
-            draw_text("SONIC EST HS", font_interface, WHITE, screen, WIDTH // 2, HEIGHT // 2 + 20)
-            
-        draw_text("APPUYEZ SUR 'R' POUR RECOMMENCER", font_interface, (200, 200, 200), screen, WIDTH // 2, HEIGHT - 100)
+        msg = "VICTOIRE !" if winner == "SONIC" else "GAME OVER..."
+        color = GREEN if winner == "SONIC" else RED
+        draw_text(msg, font_tour, color, screen, WIDTH // 2, HEIGHT // 2 - 50)
+        draw_text("APPUYEZ SUR 'R' POUR REJOUER", font_interface, WHITE, screen, WIDTH // 2, HEIGHT // 2 + 50)
 
     elif game_state == "PLAYER_TURN":
-        # Dessin du cadre du menu
-        menu_rect = pygame.Rect(30, HEIGHT - 160, 200, 130)
-        pygame.draw.rect(screen, (0, 0, 100), menu_rect, border_radius=10)
-        pygame.draw.rect(screen, WHITE, menu_rect, 2, border_radius=10)
+        # Menu décalé un peu plus dans le coin avec la nouvelle taille
+        menu_rect = pygame.Rect(50, HEIGHT - 180, 220, 140)
+        pygame.draw.rect(screen, (0, 0, 120), menu_rect, border_radius=12)
+        pygame.draw.rect(screen, WHITE, menu_rect, 3, border_radius=12)
         
         for i, option in enumerate(options):
-            color = WHITE if i == menu_index else (100, 100, 100)
+            txt_color = WHITE if i == menu_index else GRAY
             prefix = "> " if i == menu_index else "  "
-            draw_text(prefix + option, font_menu, color, screen, 110, HEIGHT - 130 + (i * 35))
+            draw_text(prefix + option, font_menu, txt_color, screen, 140, HEIGHT - 145 + (i * 40))
         
-        draw_text("CHOISIS TON ACTION", font_tour, WHITE, screen, WIDTH // 2, 50)
+        draw_text("CHOISIS TON ACTION", font_tour, WHITE, screen, WIDTH // 2, 80)
 
-    elif game_state == "ENEMY_TURN" or game_state == "ENEMY_ATTACKING":
-        draw_text("ATTENTION : ECLIPSE ATTAQUE !", font_tour, RED, screen, WIDTH // 2, 50)
+    elif "ENEMY" in game_state:
+        draw_text("TOUR DE L'ENNEMI...", font_tour, RED, screen, WIDTH // 2, 80)
 
     pygame.display.flip()
 

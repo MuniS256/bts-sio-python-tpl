@@ -37,6 +37,8 @@ boss = Fighter("Eclipse", 120, 15, 50, ENEMY_SPRITE, 550, 300)
 # 3. BOUCLE DE JEU
 running = True
 while running:
+    dt = clock.tick(FPS) / 1000.0  # Delta time in seconds
+    
     # --- A. Gestion des événements (Entrées utilisateur) ---
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -51,8 +53,8 @@ while running:
                 if boss.hp < 0: boss.hp = 0
 
     # --- B. Mise à jour de la logique (Calculs) ---
-    player.update() # Gère le mouvement de Sonic
-    boss.update()   # Gère le mouvement de l'ennemi (si besoin)
+    player.update(dt) # Gère le mouvement de Sonic
+    boss.update(dt)   # Gère le mouvement de l'ennemi (si besoin)
 
     # --- C. Affichage (Dessin) ---
     screen.fill(BLACK) # On efface l'écran précédent
@@ -67,7 +69,6 @@ while running:
 
     # --- D. Rafraîchissement ---
     pygame.display.flip()
-    clock.tick(FPS)
 
 pygame.quit()
 sys.exit()

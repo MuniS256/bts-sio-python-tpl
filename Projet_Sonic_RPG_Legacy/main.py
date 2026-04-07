@@ -38,11 +38,12 @@ except:
     background.fill((20, 40, 20))
 
 # 2. CRÉATION DES PERSONNAGES
-player = Fighter("Sonic", 100, 20, 50, SONIC_SPRITE, 200, 400)
-boss = Fighter("Eclipse", 120, 15, 50, ENEMY_SPRITE, 900, 400)
+# Ajout de frames=1 car tu utilises des images fixes pour le moment
+player = Fighter("Sonic", 100, 20, 50, SONIC_SPRITE, 200, 400, frames=1)
+boss = Fighter("Eclipse", 120, 15, 50, ENEMY_SPRITE, 900, 400, frames=1)
 
 # --- NOUVELLES VARIABLES POUR L'HISTOIRE & MENU ---
-game_state = "START_MENU" # On commence par l'écran titre
+game_state = "START_MENU" 
 story_index = 0
 story_lines = [
     "Sonic: Eclipse ! Rend-moi l'Emeraude du Chaos tout de suite !",
@@ -74,29 +75,30 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         
-        # --- LOGIQUE DES TOUCHES SELON L'ÉTAT ---
+        # --- LOGIQUE DES TOUCHES ---
         if event.type == pygame.KEYDOWN:
             if game_state == "START_MENU":
                 if event.key == pygame.K_SPACE:
-                    game_state = "STORY" # Passer à l'histoire
+                    game_state = "STORY"
             
             elif game_state == "STORY":
                 if event.key == pygame.K_SPACE or event.key == pygame.K_RETURN:
                     story_index += 1
                     if story_index >= len(story_lines):
-                        game_state = "PLAYER_TURN" # Lancer le combat !
+                        game_state = "PLAYER_TURN"
 
             elif game_state == "GAME_OVER":
                 if event.key == pygame.K_r:
+                    # Reset complet
                     player.hp = player.max_hp
                     player.display_hp = player.max_hp
                     boss.hp = boss.max_hp
                     boss.display_hp = boss.max_hp
                     player.x, player.y = player.original_x, player.original_y
                     boss.x, boss.y = boss.original_x, boss.original_y
-                    game_state = "PLAYER_TURN"
-                    winner = None
                     story_index = 0
+                    game_state = "START_MENU" # Retour au menu pour l'immersion
+                    winner = None
 
             elif game_state == "PLAYER_TURN":
                 if event.key == pygame.K_UP:
@@ -111,34 +113,33 @@ while running:
                         game_state = "PLAYER_ATTACKING"
 
     # --- LOGIQUE DE COMBAT ---
-    if game_state in ["PLAYER_ATTACKING", "ENEMY_TURN", "ENEMY_ATTACKING"]:
-        # (Garde ton code actuel de logique de tours ici...)
-        if game_state == "PLAYER_ATTACKING":
-            if not has_hit and player.rect.colliderect(boss.rect):
-                boss.take_damage(player.attack)
-                has_hit = True
-                player.is_attacking = False 
-            if not player.is_attacking and player.x == player.original_x:
-                wait_timer += dt
-                if wait_timer >= 0.8:
-                    game_state = "ENEMY_TURN"; wait_timer = 0
-
-        if game_state == "ENEMY_TURN":
+    if game_state == "PLAYER_ATTACKING":
+        if not has_hit and player.rect.colliderect(boss.rect):
+            boss.take_damage(player.attack)
+            has_hit = True
+            player.is_attacking = False 
+        if not player.is_attacking and player.x == player.original_x:
             wait_timer += dt
-            if wait_timer >= 0.7:
-                boss.is_attacking = True
-                boss.target_x = player.x + 100; has_hit = False
-                game_state = "ENEMY_ATTACKING"; wait_timer = 0
+            if wait_timer >= 0.8:
+                game_state = "ENEMY_TURN"; wait_timer = 0
 
-        if game_state == "ENEMY_ATTACKING":
-            if not has_hit and boss.rect.colliderect(player.rect):
-                player.take_damage(boss.attack); has_hit = True
-                boss.is_attacking = False 
-            if not boss.is_attacking and boss.x == boss.original_x:
-                wait_timer += dt
-                if wait_timer >= 0.8:
-                    game_state = "PLAYER_TURN"; wait_timer = 0
+    if game_state == "ENEMY_TURN":
+        wait_timer += dt
+        if wait_timer >= 0.7:
+            boss.is_attacking = True
+            boss.target_x = player.x + 100; has_hit = False
+            game_state = "ENEMY_ATTACKING"; wait_timer = 0
 
+    if game_state == "ENEMY_ATTACKING":
+        if not has_hit and boss.rect.colliderect(player.rect):
+            player.take_damage(boss.attack); has_hit = True
+            boss.is_attacking = False 
+        if not boss.is_attacking and boss.x == boss.original_x:
+            wait_timer += dt
+            if wait_timer >= 0.8:
+                game_state = "PLAYER_TURN"; wait_timer = 0
+
+    # Vérification de mort
     if game_state not in ["START_MENU", "STORY", "GAME_OVER"]:
         if player.hp <= 0:
             game_state = "GAME_OVER"; winner = "ECLIPSE"
@@ -151,30 +152,22 @@ while running:
     screen.blit(background, (0, 0)) 
 
     if game_state == "START_MENU":
-        # Voile sombre
         overlay = pygame.Surface((WIDTH, HEIGHT))
         overlay.set_alpha(150); overlay.fill(BLACK)
         screen.blit(overlay, (0,0))
-        
         draw_text("SONIC RPG LEGACY", font_title, (0, 200, 255), screen, WIDTH // 2, HEIGHT // 3)
-        
-        # Texte clignotant
         if (current_time // 500) % 2 == 0:
             draw_text("APPUYEZ SUR ESPACE", font_interface, WHITE, screen, WIDTH // 2, HEIGHT // 2 + 50)
 
     elif game_state == "STORY":
         player.draw(screen)
         boss.draw(screen)
-        # Boîte de dialogue
         dialog_rect = pygame.Rect(50, HEIGHT - 150, WIDTH - 100, 120)
         pygame.draw.rect(screen, (0, 0, 0), dialog_rect)
         pygame.draw.rect(screen, WHITE, dialog_rect, 3)
-        
-        # Affiche la ligne actuelle
         draw_text(story_lines[story_index], font_interface, WHITE, screen, WIDTH // 2, HEIGHT - 90)
 
     else:
-        # Affichage normal du combat
         player.draw(screen)
         boss.draw(screen)
         draw_hp_bar(screen, player.x, player.y - 50, player.display_hp, player.max_hp)

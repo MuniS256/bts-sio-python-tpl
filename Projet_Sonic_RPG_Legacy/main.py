@@ -59,14 +59,15 @@ while running:
     # --- C. Affichage (Dessin) ---
     screen.fill(BLACK) # On efface l'écran précédent
     
-    # On dessine les images aux coordonnées actuelles (qui changent pendant l'attaque)
-    screen.blit(player.image, (player.x, player.y))
-    screen.blit(boss.image, (boss.x, boss.y))
+    # ✅ NOUVEAU (À UTILISER) :
+    # On laisse l'objet décider s'il doit dessiner l'image normale ou le flash rouge
+    player.draw(screen)
+    boss.draw(screen)
     
     # On dessine l'interface par-dessus
     draw_hp_bar(screen, 100, 250, player.hp, player.max_hp)
     draw_hp_bar(screen, 500, 250, boss.hp, boss.max_hp)
-
+    
     # --- D. Rafraîchissement ---
     pygame.display.flip()
 

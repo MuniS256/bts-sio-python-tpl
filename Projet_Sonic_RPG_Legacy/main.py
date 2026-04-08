@@ -22,7 +22,8 @@ import sys
 import random
 from settings import *
 from fighter_class import Fighter
-from ui import draw_hp_bar, draw_mana_bar, draw_text, grayscale_surface # Assure-toi d'avoir mis grayscale_surface dans ui.py
+# Importe bien negative_surface depuis ton fichier ui.py
+from ui import draw_hp_bar, draw_mana_bar, draw_text, negative_surface 
 
 # 1. INITIALISATION
 pygame.init()
@@ -34,13 +35,13 @@ clock = pygame.time.Clock()
 try:
     background = pygame.image.load("Projet_Sonic_RPG_Legacy/assets/images/c_hill_zone.png").convert()
     background = pygame.transform.scale(background, (WIDTH, HEIGHT))
-    # Pré-calcul du fond gris pour l'effet Special (plus performant)
-    bg_grayscale = grayscale_surface(background.copy())
+    # ON PRÉ-CALCULE LE NÉGATIF ICI
+    bg_negative = negative_surface(background.copy())
 except:
     background = pygame.Surface((WIDTH, HEIGHT))
     background.fill((20, 40, 20))
-    bg_grayscale = pygame.Surface((WIDTH, HEIGHT))
-    bg_grayscale.fill((60, 60, 60))
+    bg_negative = pygame.Surface((WIDTH, HEIGHT))
+    bg_negative.fill((200, 200, 200)) # Fond clair en fallback pour le négatif
 
 # 2. CRÉATION DES PERSONNAGES
 player = Fighter("Sonic", 100, 20, 50, SONIC_SPRITE, 200, 400, frames=1)
@@ -74,8 +75,9 @@ special_index = 0
 # --- EFFETS ---
 flash_effect_timer = 0
 flash_color = (255, 255, 255)
-chaos_control_timer = 0  # Temps de l'effet gris
-distorsion_lines = []    # Lignes dorées
+# NOUVELLES VARIABLES POUR L'EFFET NÉGATIF
+negative_timer = 0  
+time_crystals = []  
 
 # Polices
 font_interface = pygame.font.SysFont("Arial", 28, bold=True)
@@ -104,7 +106,6 @@ while running:
 
             elif game_state == "GAME_OVER":
                 if event.key == pygame.K_r:
-                    # Reset Complet
                     player.hp, player.display_hp = player.max_hp, player.max_hp
                     player.energy, player.display_energy = 50, 50
                     boss.hp, boss.display_hp = boss.max_hp, boss.max_hp
@@ -161,14 +162,23 @@ while running:
 
     if game_state == "PREPARE_SUPER_DASH":
         wait_timer += dt
-        # Déclenchement de l'effet visuel unique au début
-        if wait_timer < 0.1 and chaos_control_timer <= 0:
-            chaos_control_timer = 1.0
-            distorsion_lines = [pygame.Rect(0, random.randint(100, HEIGHT-100), WIDTH, random.randint(2, 6)) for _ in range(12)]
+        # ACTIVER L'EFFET NÉGATIF
+        if wait_timer < 0.1 and negative_timer <= 0:
+            negative_timer = 1.0 # Durée de l'effet
+            # Créer des éclats de cristaux blancs/dorés
+            time_crystals = []
+            for _ in range(15):
+                time_crystals.append({
+                    "x": random.randint(50, WIDTH-50),
+                    "y": random.randint(50, HEIGHT-150),
+                    "size": random.randint(4, 10),
+                    "alpha": random.randint(150, 255)
+                })
         
         if wait_timer >= 0.8:
             boss.take_damage(80); flash_color = (255, 215, 0); flash_effect_timer = 0.4
             wait_timer = 0; game_state = "WAIT_AFTER_MAGIC"
+            time_crystals = [] # Nettoyage
 
     if game_state == "WAIT_AFTER_MAGIC":
         wait_timer += dt
@@ -194,7 +204,6 @@ while running:
             wait_timer += dt
             if wait_timer >= 0.8: game_state = "PLAYER_TURN"; wait_timer = 0
 
-    # Vérification victoire/défaite
     if game_state not in ["START_MENU", "STORY", "GAME_OVER"]:
         if player.hp <= 0: game_state = "GAME_OVER"; winner = "ECLIPSE"
         elif boss.hp <= 0: game_state = "GAME_OVER"; winner = "SONIC"
@@ -202,23 +211,26 @@ while running:
     # --- AFFICHAGE ---
     player.update(dt); boss.update(dt)
     
-    # Gestion du fond (Normal ou Chaos Control)
-    if chaos_control_timer > 0:
-        screen.blit(bg_grayscale, (0, 0))
-        chaos_control_timer -= dt
+    # GESTION DU FOND (NORMAL OU NÉGATIF)
+    if negative_timer > 0:
+        screen.blit(bg_negative, (0, 0))
+        negative_timer -= dt
     else:
         screen.blit(background, (0, 0)) 
 
     player.draw(screen); boss.draw(screen)
 
-    # Dessin des lignes de distorsion dorées
-    if chaos_control_timer > 0:
-        for line in distorsion_lines:
-            line_surf = pygame.Surface((line.width, line.height))
-            line_surf.fill((255, 215, 0))
-            line_surf.set_alpha(150)
-            screen.blit(line_surf, (line.x, line.y))
-            line.x += random.randint(-50, 50) # Vibration des lignes
+    # DESSIN DES CRISTAUX DE TEMPS (Plus esthétique que les lignes)
+    if negative_timer > 0:
+        for crystal in time_crystals:
+            # Création d'un éclat en forme de losange
+            s = crystal["size"]
+            surf = pygame.Surface((s*2, s*2), pygame.SRCALPHA)
+            color = (255, 255, 255, crystal["alpha"])
+            pygame.draw.polygon(surf, color, [(s, 0), (s*2, s), (s, s*2), (0, s)])
+            screen.blit(surf, (crystal["x"], crystal["y"]))
+            # Scintillement
+            crystal["alpha"] = max(0, crystal["alpha"] - (150 * dt))
 
     # UI et Barres
     if game_state not in ["START_MENU", "STORY"]:
@@ -242,7 +254,7 @@ while running:
                 txt_color = WHITE if i == current_idx else GRAY
                 draw_text("> " + opt if i == current_idx else "  " + opt, font_menu, txt_color, screen, 190, HEIGHT - 140 + (i * 35))
 
-    # Overlays (Start & Game Over)
+    # Overlays
     if game_state == "START_MENU":
         overlay = pygame.Surface((WIDTH, HEIGHT)); overlay.set_alpha(150); overlay.fill(BLACK); screen.blit(overlay, (0,0))
         draw_text("SONIC RPG LEGACY", font_title, (0, 200, 255), screen, WIDTH // 2, HEIGHT // 3)

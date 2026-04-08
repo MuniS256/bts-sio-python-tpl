@@ -78,3 +78,19 @@ def draw_text(text, font, color, surface, x, y, outline_color=(0, 0, 0), thickne
 
     # Dessin du texte principal
     surface.blit(text_obj, text_rect)
+
+# Dans ui.py
+
+def grayscale_surface(surface):
+    """Prend une surface et la retourne en niveaux de gris."""
+    # On crée une copie pour ne pas modifier l'original
+    arr = pygame.surfarray.pixels3d(surface)
+    # Formule standard de luminance pour le gris
+    # Gris = 0.3*R + 0.59*G + 0.11*B
+    mean = (arr[..., 0] * 0.3 + arr[..., 1] * 0.59 + arr[..., 2] * 0.11).astype(arr.dtype)
+    arr[..., 0] = mean
+    arr[..., 1] = mean
+    arr[..., 2] = mean
+    # On libère le tableau pour appliquer les changements
+    del arr 
+    return surface

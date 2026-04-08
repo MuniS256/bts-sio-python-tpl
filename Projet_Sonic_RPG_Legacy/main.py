@@ -21,7 +21,7 @@ import pygame
 import sys
 from settings import *
 from fighter_class import Fighter
-from ui import draw_hp_bar, draw_text
+from ui import draw_hp_bar, draw_mana_bar, draw_text # Import de la nouvelle barre
 
 # 1. INITIALISATION
 pygame.init()
@@ -58,7 +58,7 @@ menu_index = 0
 options = ["ATTACK", "MAGIC", "SPECIAL"]
 winner = None 
 
-# --- ÉTAPE 2 : Variables Magic ---
+# Variables Magic
 magic_options = ["SOIN (10 MP)", "CHAOS BLAST (20 MP)", "RETOUR"]
 in_magic_menu = False
 magic_index = 0
@@ -94,7 +94,7 @@ while running:
                 if event.key == pygame.K_r:
                     player.hp = player.max_hp
                     player.display_hp = player.max_hp
-                    player.energy = 50 # Reset Energie
+                    player.energy = 50
                     boss.hp = boss.max_hp
                     boss.display_hp = boss.max_hp
                     player.x, player.y = player.original_x, player.original_y
@@ -104,46 +104,51 @@ while running:
                     winner = None
 
             elif game_state == "PLAYER_TURN":
-                # --- ÉTAPE 2 : Logique Menu Magic ---
                 if not in_magic_menu:
                     if event.key == pygame.K_UP:
                         menu_index = (menu_index - 1) % len(options)
                     elif event.key == pygame.K_DOWN:
                         menu_index = (menu_index + 1) % len(options)
                     elif event.key == pygame.K_SPACE or event.key == pygame.K_RETURN:
-                        if menu_index == 0: # ATTACK
+                        if menu_index == 0: 
                             player.is_attacking = True
                             player.target_x = boss.x - 100 
                             has_hit = False 
                             game_state = "PLAYER_ATTACKING"
-                        elif menu_index == 1: # Ouvrir le menu MAGIC
+                        elif menu_index == 1:
                             in_magic_menu = True
                 else:
                     if event.key == pygame.K_UP:
                         magic_index = (magic_index - 1) % len(magic_options)
                     elif event.key == pygame.K_DOWN:
                         magic_index = (magic_index + 1) % len(magic_options)
-                    elif event.key == pygame.K_ESCAPE: # Touche pour revenir en arrière
+                    elif event.key == pygame.K_ESCAPE:
                         in_magic_menu = False
                     elif event.key == pygame.K_SPACE or event.key == pygame.K_RETURN:
                         if magic_index == 0: # SOIN
                             if player.use_energy(10):
                                 player.heal(30)
                                 in_magic_menu = False
-                                game_state = "ENEMY_TURN"
+                                wait_timer = 0
+                                game_state = "WAIT_AFTER_MAGIC"
                         elif magic_index == 1: # CHAOS BLAST
                             if player.use_energy(20):
                                 boss.take_damage(40)
                                 in_magic_menu = False
-                                game_state = "ENEMY_TURN"
-                        elif magic_index == 2: # RETOUR
+                                wait_timer = 0
+                                game_state = "WAIT_AFTER_MAGIC"
+                        elif magic_index == 2:
                             in_magic_menu = False
 
-    # --- LOGIQUE DE COMBAT (Identique) ---
+    # --- LOGIQUE DE COMBAT ---
+    if game_state == "WAIT_AFTER_MAGIC":
+        wait_timer += dt
+        if wait_timer >= 1.0:
+            game_state = "ENEMY_TURN"; wait_timer = 0
+
     if game_state == "PLAYER_ATTACKING":
         if not has_hit and player.rect.colliderect(boss.rect):
-            boss.take_damage(player.attack)
-            has_hit = True
+            boss.take_damage(player.attack); has_hit = True
             player.is_attacking = False 
         if not player.is_attacking and player.x == player.original_x:
             wait_timer += dt
@@ -184,26 +189,31 @@ while running:
             draw_text("APPUYEZ SUR ESPACE", font_interface, WHITE, screen, WIDTH // 2, HEIGHT // 2 + 50)
 
     elif game_state == "STORY":
-        player.draw(screen)
-        boss.draw(screen)
+        player.draw(screen); boss.draw(screen)
         dialog_rect = pygame.Rect(50, HEIGHT - 150, WIDTH - 100, 120)
         pygame.draw.rect(screen, (0, 0, 0), dialog_rect)
         pygame.draw.rect(screen, WHITE, dialog_rect, 3)
         draw_text(story_lines[story_index], font_interface, WHITE, screen, WIDTH // 2, HEIGHT - 90)
 
     else:
-        player.draw(screen)
-        boss.draw(screen)
+        player.draw(screen); boss.draw(screen)
+        
+        # UI SONIC (Barre HP + Barre MP + Chiffres)
         draw_hp_bar(screen, player.x, player.y - 50, player.display_hp, player.max_hp)
-        draw_text(player.name, font_interface, WHITE, screen, player.x + 80, player.y - 65)
+        draw_mana_bar(screen, player.x, player.y - 25, player.energy, 50)
+        draw_text(player.name, font_interface, WHITE, screen, player.x + 75, player.y - 75)
+        
+        # UI BOSS (Barre HP + Barre MP + Chiffres)
         draw_hp_bar(screen, boss.x, boss.y - 50, boss.display_hp, boss.max_hp)
-        draw_text(boss.name, font_interface, RED, screen, boss.x + 80, boss.y - 65)
+        draw_mana_bar(screen, boss.x, boss.y - 25, boss.energy, 50)
+        draw_text(boss.name, font_interface, RED, screen, boss.x + 75, boss.y - 75)
 
-        # --- ÉTAPE 3 : Affichage des Menus Dynamiques ---
         if game_state == "PLAYER_TURN":
-            menu_rect = pygame.Rect(50, HEIGHT - 180, 280, 140)
+            menu_rect = pygame.Rect(50, HEIGHT - 200, 280, 160)
             pygame.draw.rect(screen, (0, 0, 120), menu_rect, border_radius=12)
             pygame.draw.rect(screen, WHITE, menu_rect, 3, border_radius=12)
+            
+            draw_text(f"ENERGIE: {int(player.energy)} MP", font_interface, (0, 200, 255), screen, 190, HEIGHT - 180)
             
             current_menu = magic_options if in_magic_menu else options
             current_idx = magic_index if in_magic_menu else menu_index
@@ -211,12 +221,10 @@ while running:
             for i, opt in enumerate(current_menu):
                 txt_color = WHITE if i == current_idx else GRAY
                 prefix = "> " if i == current_idx else "  "
-                draw_text(prefix + opt, font_menu, txt_color, screen, 190, HEIGHT - 145 + (i * 40))
+                draw_text(prefix + opt, font_menu, txt_color, screen, 190, HEIGHT - 140 + (i * 35))
             
-            # Titre et Points de Magie
-            title_msg = "QUEL SORT ?" if in_magic_menu else "CHOISIS TON ACTION"
+            title_msg = "MAGIE DU CHAOS" if in_magic_menu else "CHOISIS TON ACTION"
             draw_text(title_msg, font_tour, WHITE, screen, WIDTH // 2, 80)
-            draw_text(f"MP: {player.energy}", font_interface, (0, 200, 255), screen, 190, HEIGHT - 210)
 
         if game_state == "GAME_OVER":
             overlay = pygame.Surface((WIDTH, HEIGHT))

@@ -78,11 +78,11 @@ flash_color = (255, 255, 255)
 negative_timer = 0  
 time_crystals = []  
 
-# Polices - Augmentation de la taille du titre (60 -> 85)
+# Polices
 font_interface = pygame.font.SysFont("Arial", 28, bold=True)
 font_tour = pygame.font.SysFont("Arial", 40, bold=True)
 font_menu = pygame.font.SysFont("Verdana", 26, bold=True)
-font_title = pygame.font.SysFont("Impact", 85) # Passage sur Impact pour un look plus "Action"
+font_title = pygame.font.SysFont("Impact", 85) # Titre imposant
 
 # 3. BOUCLE DE JEU
 running = True
@@ -95,6 +95,7 @@ while running:
             running = False
         
         if event.type == pygame.KEYDOWN:
+            # --- LOGIQUE MENU PRINCIPAL ---
             if game_state == "START_MENU":
                 if event.key == pygame.K_UP:
                     main_menu_index = (main_menu_index - 1) % len(main_menu_options)
@@ -119,6 +120,7 @@ while running:
                     story_index, winner, wait_timer, has_hit = 0, None, 0, False
                     game_state = "START_MENU"
 
+            # --- LOGIQUE COMBAT (REMISE EN PLACE) ---
             elif game_state == "PLAYER_TURN":
                 if not in_magic_menu and not in_special_menu:
                     if event.key == pygame.K_UP: menu_index = (menu_index - 1) % len(options)
@@ -137,6 +139,7 @@ while running:
                         if magic_index == 0 and player.use_energy(10): game_state = "PREPARE_SOIN"
                         elif magic_index == 1 and player.use_energy(20): game_state = "PREPARE_ATTAQUE"
                         in_magic_menu = False
+                    elif event.key == pygame.K_ESCAPE: in_magic_menu = False
 
                 elif in_special_menu:
                     if event.key == pygame.K_UP: special_index = (special_index - 1) % len(special_options)
@@ -146,8 +149,9 @@ while running:
                             wait_timer = 0
                             game_state = "PREPARE_SUPER_DASH"
                         in_special_menu = False
+                    elif event.key == pygame.K_ESCAPE: in_special_menu = False
 
-    # --- LOGIQUE DE COMBAT (CRISTAUX FIXES) ---
+    # --- LOGIQUE DE COMBAT ---
     if game_state == "PREPARE_SUPER_DASH":
         wait_timer += dt
         if negative_timer <= 0:
@@ -158,20 +162,45 @@ while running:
             boss.take_damage(80); flash_color = (255, 215, 0); flash_effect_timer = 0.4
             wait_timer = 0; game_state = "WAIT_AFTER_MAGIC"; time_crystals = []
 
-    # (Logique de soin/attaque raccourcie pour lisibilité, identique à ton code)
-    if game_state == "PREPARE_SOIN" and wait_timer + dt >= 0.6:
-        player.heal(30); flash_color = (100, 255, 100); flash_effect_timer = 0.2; wait_timer = 0; game_state = "WAIT_AFTER_MAGIC"
-    elif game_state == "PREPARE_ATTAQUE" and wait_timer + dt >= 0.8:
-        boss.take_damage(40); flash_color = (255, 255, 255); flash_effect_timer = 0.3; wait_timer = 0; game_state = "WAIT_AFTER_MAGIC"
-    
-    if game_state in ["PREPARE_SOIN", "PREPARE_ATTAQUE", "WAIT_AFTER_MAGIC", "PLAYER_ATTACKING", "ENEMY_TURN", "ENEMY_ATTACKING"]:
+    if game_state == "PREPARE_SOIN":
         wait_timer += dt
+        if wait_timer >= 0.6:
+            player.heal(30); flash_color = (100, 255, 100); flash_effect_timer = 0.2
+            wait_timer = 0; game_state = "WAIT_AFTER_MAGIC"
 
-    # ... (Reste de la logique de collision identique) ...
-    if game_state == "PLAYER_ATTACKING" and not has_hit and player.rect.colliderect(boss.rect):
-        boss.take_damage(player.attack); has_hit = True; player.is_attacking = False 
-    if game_state == "ENEMY_ATTACKING" and not has_hit and boss.rect.colliderect(player.rect):
-        player.take_damage(boss.attack); has_hit = True; boss.is_attacking = False 
+    if game_state == "PREPARE_ATTAQUE":
+        wait_timer += dt
+        if wait_timer >= 0.8:
+            boss.take_damage(40); flash_color = (255, 255, 255); flash_effect_timer = 0.3
+            wait_timer = 0; game_state = "WAIT_AFTER_MAGIC"
+
+    if game_state == "WAIT_AFTER_MAGIC":
+        wait_timer += dt
+        if wait_timer >= 1.0: game_state = "ENEMY_TURN"; wait_timer = 0
+
+    if game_state == "PLAYER_ATTACKING":
+        if not has_hit and player.rect.colliderect(boss.rect):
+            boss.take_damage(player.attack); has_hit = True; player.is_attacking = False 
+        if not player.is_attacking and player.x == player.original_x:
+            wait_timer += dt
+            if wait_timer >= 0.8: game_state = "ENEMY_TURN"; wait_timer = 0
+
+    if game_state == "ENEMY_TURN":
+        wait_timer += dt
+        if wait_timer >= 0.7:
+            boss.is_attacking, boss.target_x, has_hit = True, player.x + 100, False
+            game_state = "ENEMY_ATTACKING"; wait_timer = 0
+
+    if game_state == "ENEMY_ATTACKING":
+        if not has_hit and boss.rect.colliderect(player.rect):
+            player.take_damage(boss.attack); has_hit = True; boss.is_attacking = False 
+        if not boss.is_attacking and boss.x == boss.original_x:
+            wait_timer += dt
+            if wait_timer >= 0.8: game_state = "PLAYER_TURN"; wait_timer = 0
+
+    if game_state not in ["START_MENU", "STORY", "GAME_OVER"]:
+        if player.hp <= 0: game_state = "GAME_OVER"; winner = "ECLIPSE"
+        elif boss.hp <= 0: game_state = "GAME_OVER"; winner = "SONIC"
 
     # --- AFFICHAGE ---
     player.update(dt); boss.update(dt)
@@ -190,42 +219,40 @@ while running:
     if game_state != "START_MENU":
         player.draw(screen); boss.draw(screen)
 
-    # --- MENU PRINCIPAL STYLE "STYLÉ & IMPOSANT" ---
+    # --- MENU PRINCIPAL ---
     if game_state == "START_MENU":
         overlay = pygame.Surface((WIDTH, HEIGHT)); overlay.set_alpha(180); overlay.fill((0, 0, 20)) 
         screen.blit(overlay, (0, 0))
-        
-        # 1. Effet de vibration léger (2 pixels)
         v_x, v_y = random.randint(-2, 2), random.randint(-2, 2)
-        title_text = "SONIC RPG LEGACY"
-        title_pos_x, title_pos_y = WIDTH // 2, HEIGHT // 3
-        
-        # 2. Dessiner l'ombre portée (Noir, décalé de 5px)
-        draw_text(title_text, font_title, (20, 20, 20), screen, title_pos_x + 5, title_pos_y + 5)
-        
-        # 3. Dessiner l'effet de lueur Chaos (Cyan, décalé avec vibration)
-        draw_text(title_text, font_title, (0, 100, 255), screen, title_pos_x + v_x, title_pos_y + v_y)
-        
-        # 4. Dessiner le titre principal (Blanc pour le contraste)
-        draw_text(title_text, font_title, WHITE, screen, title_pos_x, title_pos_y)
+        draw_text("SONIC RPG LEGACY", font_title, (20, 20, 20), screen, WIDTH // 2 + 5, HEIGHT // 3 + 5)
+        draw_text("SONIC RPG LEGACY", font_title, (0, 100, 255), screen, WIDTH // 2 + v_x, HEIGHT // 3 + v_y)
+        draw_text("SONIC RPG LEGACY", font_title, WHITE, screen, WIDTH // 2, HEIGHT // 3)
 
-        # Options du menu
         for i, opt in enumerate(main_menu_options):
-            is_sel = (i == main_menu_index)
-            color = (0, 255, 255) if is_sel else (100, 100, 100)
-            prefix = ">> " if is_sel else "   "
-            draw_text(prefix + opt, font_menu, color, screen, WIDTH // 2, HEIGHT // 2 + 30 + (i * 60))
+            color = (0, 255, 255) if i == main_menu_index else (100, 100, 100)
+            draw_text((">> " if i == main_menu_index else "   ") + opt, font_menu, color, screen, WIDTH // 2, HEIGHT // 2 + 30 + (i * 60))
 
-    # UI Combat & Story (Gardé tel quel)
+    # --- UI COMBAT (RÉPARÉ) ---
     elif game_state not in ["STORY"]:
         draw_hp_bar(screen, player.x, player.y - 50, player.display_hp, player.max_hp)
         draw_mana_bar(screen, player.x, player.y - 25, player.display_energy, 50)
         draw_hp_bar(screen, boss.x, boss.y - 50, boss.display_hp, boss.max_hp)
         draw_mana_bar(screen, boss.x, boss.y - 25, boss.display_energy, 50)
+
         if game_state == "PLAYER_TURN":
-            pygame.draw.rect(screen, (0, 0, 80), (50, HEIGHT - 200, 280, 160), border_radius=12)
+            # Fenêtre de commande
+            pygame.draw.rect(screen, (0, 0, 120), (50, HEIGHT - 200, 280, 160), border_radius=12)
             pygame.draw.rect(screen, WHITE, (50, HEIGHT - 200, 280, 160), 3, border_radius=12)
-            # ... (Reste de l'UI combat)
+            
+            # Choix du menu à afficher
+            if in_magic_menu: current_menu, current_idx, title_msg = magic_options, magic_index, "MAGIE DU CHAOS"
+            elif in_special_menu: current_menu, current_idx, title_msg = special_options, special_index, "CAPACITÉ SPÉCIALE"
+            else: current_menu, current_idx, title_msg = options, menu_index, "CHOISIS TON ACTION"
+            
+            draw_text(title_msg, font_tour, WHITE, screen, WIDTH // 2, 80)
+            for i, opt in enumerate(current_menu):
+                txt_color = WHITE if i == current_idx else (150, 150, 150)
+                draw_text(("> " if i == current_idx else "  ") + opt, font_menu, txt_color, screen, 190, HEIGHT - 140 + (i * 35))
 
     if game_state == "STORY":
         pygame.draw.rect(screen, BLACK, (50, HEIGHT - 150, WIDTH - 100, 120))

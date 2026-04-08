@@ -62,7 +62,12 @@ magic_options = ["SOIN (10 MP)", "CHAOS BLAST (20 MP)", "RETOUR"]
 in_magic_menu = False
 magic_index = 0
 
-# --- NOUVEAU : VARIABLES D'EFFETS ---
+# Variables Special
+special_options = ["SUPER DASH (40 MP)", "RETOUR"]
+in_special_menu = False
+special_index = 0
+
+# --- EFFETS ---
 flash_effect_timer = 0
 flash_color = (255, 255, 255)
 
@@ -95,35 +100,18 @@ while running:
 
             elif game_state == "GAME_OVER":
                 if event.key == pygame.K_r:
-                    # 1. RESET DES STATS (On remet tout à neuf)
-                    player.hp = player.max_hp
-                    player.display_hp = player.max_hp
-                    player.energy = 50
-                    player.display_energy = 50
-                    
-                    boss.hp = boss.max_hp
-                    boss.display_hp = boss.max_hp
-                    boss.energy = 50
-                    boss.display_energy = 50
-                    
-                    # 2. RESET DES POSITIONS
-                    player.x = player.original_x
-                    boss.x = boss.original_x
-                    player.is_attacking = False
-                    boss.is_attacking = False
-                    
-                    # 3. RESET DES VARIABLES DE CONTRÔLE (Important !)
-                    story_index = 0
-                    winner = None
-                    wait_timer = 0
-                    has_hit = False
-                    in_magic_menu = False
-                    
-                    # 4. RETOUR AU MENU
+                    player.hp, player.display_hp = player.max_hp, player.max_hp
+                    player.energy, player.display_energy = 50, 50
+                    boss.hp, boss.display_hp = boss.max_hp, boss.max_hp
+                    boss.energy, boss.display_energy = 50, 50
+                    player.x, boss.x = player.original_x, boss.original_x
+                    player.is_attacking, boss.is_attacking = False, False
+                    story_index, winner, wait_timer, has_hit = 0, None, 0, False
+                    in_magic_menu, in_special_menu = False, False
                     game_state = "START_MENU"
 
             elif game_state == "PLAYER_TURN":
-                if not in_magic_menu:
+                if not in_magic_menu and not in_special_menu:
                     if event.key == pygame.K_UP: menu_index = (menu_index - 1) % len(options)
                     elif event.key == pygame.K_DOWN: menu_index = (menu_index + 1) % len(options)
                     elif event.key == pygame.K_SPACE or event.key == pygame.K_RETURN:
@@ -132,62 +120,59 @@ while running:
                             player.target_x = boss.x - 100 
                             has_hit = False 
                             game_state = "PLAYER_ATTACKING"
-                        elif menu_index == 1:
-                            in_magic_menu = True
-                else:
+                        elif menu_index == 1: in_magic_menu = True
+                        elif menu_index == 2: in_special_menu = True
+                
+                elif in_magic_menu:
                     if event.key == pygame.K_UP: magic_index = (magic_index - 1) % len(magic_options)
                     elif event.key == pygame.K_DOWN: magic_index = (magic_index + 1) % len(magic_options)
                     elif event.key == pygame.K_ESCAPE: in_magic_menu = False
                     elif event.key == pygame.K_SPACE or event.key == pygame.K_RETURN:
-                        # --- MODIFICATION LOGIQUE MENU MAGIE ---
-                        if magic_index == 0: # SOIN
-                            if player.use_energy(10):
-                                in_magic_menu = False
-                                wait_timer = 0
-                                game_state = "PREPARE_SOIN" # Délai avant soin
-                        elif magic_index == 1: # CHAOS BLAST
-                            if player.use_energy(20):
-                                in_magic_menu = False
-                                wait_timer = 0
-                                game_state = "PREPARE_ATTAQUE" # Délai avant explosion
-                        elif magic_index == 2:
-                            in_magic_menu = False
+                        if magic_index == 0 and player.use_energy(10):
+                            in_magic_menu, wait_timer, game_state = False, 0, "PREPARE_SOIN"
+                        elif magic_index == 1 and player.use_energy(20):
+                            in_magic_menu, wait_timer, game_state = False, 0, "PREPARE_ATTAQUE"
+                        elif magic_index == 2: in_magic_menu = False
+                
+                elif in_special_menu:
+                    if event.key == pygame.K_UP: special_index = (special_index - 1) % len(special_options)
+                    elif event.key == pygame.K_DOWN: special_index = (special_index + 1) % len(special_options)
+                    elif event.key == pygame.K_ESCAPE: in_special_menu = False
+                    elif event.key == pygame.K_SPACE or event.key == pygame.K_RETURN:
+                        if special_index == 0 and player.use_energy(40):
+                            in_special_menu, wait_timer, game_state = False, 0, "PREPARE_SUPER_DASH"
+                        elif special_index == 1: in_special_menu = False
 
-    # --- LOGIQUE DE COMBAT ET NOUVEAUX ÉTATS ---
-    
-    # Étape 1 : Le mana a baissé, on attend pour que le joueur le voie
+    # --- LOGIQUE DE COMBAT ---
     if game_state == "PREPARE_SOIN":
         wait_timer += dt
         if wait_timer >= 0.6:
-            player.heal(30)
-            flash_color = (100, 255, 100) # Flash Vert
-            flash_effect_timer = 0.2
-            wait_timer = 0
-            game_state = "WAIT_AFTER_MAGIC"
+            player.heal(30); flash_color = (100, 255, 100); flash_effect_timer = 0.2
+            wait_timer = 0; game_state = "WAIT_AFTER_MAGIC"
 
     if game_state == "PREPARE_ATTAQUE":
         wait_timer += dt
         if wait_timer >= 0.8:
-            boss.take_damage(40)
-            flash_color = (255, 255, 255) # Flash Blanc
-            flash_effect_timer = 0.3
-            wait_timer = 0
-            game_state = "WAIT_AFTER_MAGIC"
+            boss.take_damage(40); flash_color = (255, 255, 255); flash_effect_timer = 0.3
+            wait_timer = 0; game_state = "WAIT_AFTER_MAGIC"
+
+    if game_state == "PREPARE_SUPER_DASH":
+        wait_timer += dt
+        if wait_timer >= 0.8:
+            boss.take_damage(80); flash_color = (255, 215, 0); flash_effect_timer = 0.5
+            wait_timer = 0; game_state = "WAIT_AFTER_MAGIC"
 
     if game_state == "WAIT_AFTER_MAGIC":
         wait_timer += dt
-        if wait_timer >= 1.0:
-            game_state = "ENEMY_TURN"; wait_timer = 0
+        if wait_timer >= 1.0: game_state = "ENEMY_TURN"; wait_timer = 0
 
-    # Attaque physique standard
     if game_state == "PLAYER_ATTACKING":
         if not has_hit and player.rect.colliderect(boss.rect):
             boss.take_damage(player.attack); has_hit = True
             player.is_attacking = False 
         if not player.is_attacking and player.x == player.original_x:
             wait_timer += dt
-            if wait_timer >= 0.8:
-                game_state = "ENEMY_TURN"; wait_timer = 0
+            if wait_timer >= 0.8: game_state = "ENEMY_TURN"; wait_timer = 0
 
     if game_state == "ENEMY_TURN":
         wait_timer += dt
@@ -202,17 +187,14 @@ while running:
             boss.is_attacking = False 
         if not boss.is_attacking and boss.x == boss.original_x:
             wait_timer += dt
-            if wait_timer >= 0.8:
-                game_state = "PLAYER_TURN"; wait_timer = 0
+            if wait_timer >= 0.8: game_state = "PLAYER_TURN"; wait_timer = 0
 
-    # Vérification mort
     if game_state not in ["START_MENU", "STORY", "GAME_OVER"]:
         if player.hp <= 0: game_state = "GAME_OVER"; winner = "ECLIPSE"
         elif boss.hp <= 0: game_state = "GAME_OVER"; winner = "SONIC"
 
     # --- AFFICHAGE ---
-    player.update(dt)
-    boss.update(dt)
+    player.update(dt); boss.update(dt)
     screen.blit(background, (0, 0)) 
 
     if game_state == "START_MENU":
@@ -221,14 +203,12 @@ while running:
         draw_text("SONIC RPG LEGACY", font_title, (0, 200, 255), screen, WIDTH // 2, HEIGHT // 3)
         if (current_time // 500) % 2 == 0:
             draw_text("APPUYEZ SUR ESPACE", font_interface, WHITE, screen, WIDTH // 2, HEIGHT // 2 + 50)
-
     elif game_state == "STORY":
         player.draw(screen); boss.draw(screen)
         dialog_rect = pygame.Rect(50, HEIGHT - 150, WIDTH - 100, 120)
         pygame.draw.rect(screen, (0, 0, 0), dialog_rect)
         pygame.draw.rect(screen, WHITE, dialog_rect, 3)
         draw_text(story_lines[story_index], font_interface, WHITE, screen, WIDTH // 2, HEIGHT - 90)
-
     else:
         player.draw(screen); boss.draw(screen)
         draw_hp_bar(screen, player.x, player.y - 50, player.display_hp, player.max_hp)
@@ -242,32 +222,30 @@ while running:
             pygame.draw.rect(screen, WHITE, menu_rect, 3, border_radius=12)
             draw_text(f"ENERGIE: {int(player.display_energy)} MP", font_interface, (0, 200, 255), screen, 190, HEIGHT - 180)
             
-            current_menu = magic_options if in_magic_menu else options
-            current_idx = magic_index if in_magic_menu else menu_index
+            # Gestion dynamique des menus
+            if in_magic_menu:
+                current_menu, current_idx, title_msg = magic_options, magic_index, "MAGIE DU CHAOS"
+            elif in_special_menu:
+                current_menu, current_idx, title_msg = special_options, special_index, "CAPACITÉ SPÉCIALE"
+            else:
+                current_menu, current_idx, title_msg = options, menu_index, "CHOISIS TON ACTION"
+            
+            draw_text(title_msg, font_tour, WHITE, screen, WIDTH // 2, 80)
             for i, opt in enumerate(current_menu):
                 txt_color = WHITE if i == current_idx else GRAY
                 draw_text("> " + opt if i == current_idx else "  " + opt, font_menu, txt_color, screen, 190, HEIGHT - 140 + (i * 35))
 
         if game_state == "GAME_OVER":
-            # 1. On crée le fond noir semi-transparent
-            overlay = pygame.Surface((WIDTH, HEIGHT))
-            overlay.set_alpha(200)
-            overlay.fill(BLACK)
-            screen.blit(overlay, (0,0))
-            
-            # 2. Le message principal (Gagné ou Perdu)
+            overlay = pygame.Surface((WIDTH, HEIGHT)); overlay.set_alpha(200); overlay.fill(BLACK); screen.blit(overlay, (0,0))
             msg = "VICTOIRE !" if winner == "SONIC" else "GAME OVER..."
-            color = GREEN if winner == "SONIC" else RED
-            draw_text(msg, font_title, color, screen, WIDTH // 2, HEIGHT // 2 - 50)
-            
-            # 3. LE RETOUR DU "R" (On l'ajoute ici explicitement)
+            draw_text(msg, font_title, GREEN if winner == "SONIC" else RED, screen, WIDTH // 2, HEIGHT // 2 - 50)
             draw_text("APPUYEZ SUR 'R' POUR REJOUER", font_interface, WHITE, screen, WIDTH // 2, HEIGHT // 2 + 50)
 
-    # --- DESSIN DU FLASH (Tout à la fin) ---
+    # Dessin du Flash
     if flash_effect_timer > 0:
         flash_surf = pygame.Surface((WIDTH, HEIGHT))
         flash_surf.fill(flash_color)
-        alpha = int((flash_effect_timer / 0.3) * 255) # Calcul de la transparence
+        alpha = int((flash_effect_timer / 0.5) * 255)
         flash_surf.set_alpha(max(0, min(alpha, 255)))
         screen.blit(flash_surf, (0, 0))
         flash_effect_timer -= dt

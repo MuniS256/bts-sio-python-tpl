@@ -22,7 +22,6 @@ import sys
 import random
 from settings import *
 from fighter_class import Fighter
-# Importe bien negative_surface depuis ton fichier ui.py
 from ui import draw_hp_bar, draw_mana_bar, draw_text, negative_surface 
 
 # 1. INITIALISATION
@@ -35,13 +34,12 @@ clock = pygame.time.Clock()
 try:
     background = pygame.image.load("Projet_Sonic_RPG_Legacy/assets/images/c_hill_zone.png").convert()
     background = pygame.transform.scale(background, (WIDTH, HEIGHT))
-    # ON PRÉ-CALCULE LE NÉGATIF ICI
     bg_negative = negative_surface(background.copy())
 except:
     background = pygame.Surface((WIDTH, HEIGHT))
     background.fill((20, 40, 20))
     bg_negative = pygame.Surface((WIDTH, HEIGHT))
-    bg_negative.fill((200, 200, 200)) # Fond clair en fallback pour le négatif
+    bg_negative.fill((200, 200, 200))
 
 # 2. CRÉATION DES PERSONNAGES
 player = Fighter("Sonic", 100, 20, 50, SONIC_SPRITE, 200, 400, frames=1)
@@ -57,13 +55,15 @@ story_lines = [
     "Sonic: On va voir si tu tiens encore debout après ça !"
 ]
 
+main_menu_options = ["COMMENCER L'AVENTURE", "COMMANDES", "QUITTER"]
+main_menu_index = 0
+
 has_hit = False
 wait_timer = 0 
 menu_index = 0 
 options = ["ATTACK", "MAGIC", "SPECIAL"]
 winner = None 
 
-# Variables Menus
 magic_options = ["SOIN (10 MP)", "CHAOS BLAST (20 MP)", "RETOUR"]
 in_magic_menu = False
 magic_index = 0
@@ -75,7 +75,6 @@ special_index = 0
 # --- EFFETS ---
 flash_effect_timer = 0
 flash_color = (255, 255, 255)
-# NOUVELLES VARIABLES POUR L'EFFET NÉGATIF
 negative_timer = 0  
 time_crystals = []  
 
@@ -97,7 +96,17 @@ while running:
         
         if event.type == pygame.KEYDOWN:
             if game_state == "START_MENU":
-                if event.key == pygame.K_SPACE: game_state = "STORY"
+                if event.key == pygame.K_UP:
+                    main_menu_index = (main_menu_index - 1) % len(main_menu_options)
+                elif event.key == pygame.K_DOWN:
+                    main_menu_index = (main_menu_index + 1) % len(main_menu_options)
+                elif event.key in [pygame.K_SPACE, pygame.K_RETURN]:
+                    if main_menu_index == 0: 
+                        game_state = "STORY"
+                    elif main_menu_index == 1: 
+                        print("Touches: Flèches pour naviguer, Espace/Entrée pour choisir.")
+                    elif main_menu_index == 2: 
+                        running = False
             
             elif game_state == "STORY":
                 if event.key in [pygame.K_SPACE, pygame.K_RETURN]:
@@ -130,22 +139,12 @@ while running:
                 elif in_magic_menu:
                     if event.key == pygame.K_UP: magic_index = (magic_index - 1) % len(magic_options)
                     elif event.key == pygame.K_DOWN: magic_index = (magic_index + 1) % len(magic_options)
-                    elif event.key == pygame.K_ESCAPE: in_magic_menu = False
                     elif event.key in [pygame.K_SPACE, pygame.K_RETURN]:
                         if magic_index == 0 and player.use_energy(10):
                             in_magic_menu, wait_timer, game_state = False, 0, "PREPARE_SOIN"
                         elif magic_index == 1 and player.use_energy(20):
                             in_magic_menu, wait_timer, game_state = False, 0, "PREPARE_ATTAQUE"
                         elif magic_index == 2: in_magic_menu = False
-                
-                elif in_special_menu:
-                    if event.key == pygame.K_UP: special_index = (special_index - 1) % len(special_options)
-                    elif event.key == pygame.K_DOWN: special_index = (special_index + 1) % len(special_options)
-                    elif event.key == pygame.K_ESCAPE: in_special_menu = False
-                    elif event.key in [pygame.K_SPACE, pygame.K_RETURN]:
-                        if special_index == 0 and player.use_energy(40):
-                            in_special_menu, wait_timer, game_state = False, 0, "PREPARE_SUPER_DASH"
-                        elif special_index == 1: in_special_menu = False
 
     # --- LOGIQUE DE COMBAT ---
     if game_state == "PREPARE_SOIN":
@@ -162,23 +161,12 @@ while running:
 
     if game_state == "PREPARE_SUPER_DASH":
         wait_timer += dt
-        # ACTIVER L'EFFET NÉGATIF
         if wait_timer < 0.1 and negative_timer <= 0:
-            negative_timer = 1.0 # Durée de l'effet
-            # Créer des éclats de cristaux blancs/dorés
-            time_crystals = []
-            for _ in range(15):
-                time_crystals.append({
-                    "x": random.randint(50, WIDTH-50),
-                    "y": random.randint(50, HEIGHT-150),
-                    "size": random.randint(4, 10),
-                    "alpha": random.randint(150, 255)
-                })
-        
+            negative_timer = 1.0
+            time_crystals = [{"x": random.randint(50, WIDTH-50), "y": random.randint(50, HEIGHT-150), "size": random.randint(4, 10), "alpha": random.randint(150, 255)} for _ in range(15)]
         if wait_timer >= 0.8:
             boss.take_damage(80); flash_color = (255, 215, 0); flash_effect_timer = 0.4
-            wait_timer = 0; game_state = "WAIT_AFTER_MAGIC"
-            time_crystals = [] # Nettoyage
+            wait_timer = 0; game_state = "WAIT_AFTER_MAGIC"; time_crystals = []
 
     if game_state == "WAIT_AFTER_MAGIC":
         wait_timer += dt
@@ -211,29 +199,39 @@ while running:
     # --- AFFICHAGE ---
     player.update(dt); boss.update(dt)
     
-    # GESTION DU FOND (NORMAL OU NÉGATIF)
     if negative_timer > 0:
         screen.blit(bg_negative, (0, 0))
         negative_timer -= dt
     else:
         screen.blit(background, (0, 0)) 
 
-    player.draw(screen); boss.draw(screen)
+    if game_state != "START_MENU":
+        player.draw(screen); boss.draw(screen)
 
-    # DESSIN DES CRISTAUX DE TEMPS (Plus esthétique que les lignes)
-    if negative_timer > 0:
-        for crystal in time_crystals:
-            # Création d'un éclat en forme de losange
-            s = crystal["size"]
-            surf = pygame.Surface((s*2, s*2), pygame.SRCALPHA)
-            color = (255, 255, 255, crystal["alpha"])
-            pygame.draw.polygon(surf, color, [(s, 0), (s*2, s), (s, s*2), (0, s)])
-            screen.blit(surf, (crystal["x"], crystal["y"]))
-            # Scintillement
-            crystal["alpha"] = max(0, crystal["alpha"] - (150 * dt))
+    # --- NOUVEAU : AFFICHAGE MENU PRINCIPAL AVEC VIBRATION ---
+    if game_state == "START_MENU":
+        overlay = pygame.Surface((WIDTH, HEIGHT)); overlay.set_alpha(180); overlay.fill((0, 0, 40)) 
+        screen.blit(overlay, (0, 0))
+        
+        # --- LOGIQUE DE VIBRATION ---
+        # On décale le texte aléatoirement de -3 à 3 pixels à chaque frame
+        vibe_x = random.randint(-3, 3)
+        vibe_y = random.randint(-3, 3)
+        
+        # Titre vibrant (couleur principale)
+        draw_text("SONIC RPG LEGACY", font_title, (0, 200, 255), screen, WIDTH // 2 + vibe_x, HEIGHT // 3 + vibe_y)
+        # Ombre vibrante (facultatif, pour un effet "chaos" encore plus fort)
+        draw_text("SONIC RPG LEGACY", font_title, WHITE, screen, WIDTH // 2 + random.randint(-1, 1), HEIGHT // 3 + random.randint(-1, 1))
+        
+        for i, opt in enumerate(main_menu_options):
+            is_selected = (i == main_menu_index)
+            color = WHITE if is_selected else (150, 150, 150)
+            prefix = "> " if is_selected else "  "
+            y_pos = HEIGHT // 2 + (i * 50)
+            draw_text(prefix + opt, font_menu, color, screen, WIDTH // 2, y_pos)
 
-    # UI et Barres
-    if game_state not in ["START_MENU", "STORY"]:
+    # UI Combat
+    elif game_state not in ["STORY"]:
         draw_hp_bar(screen, player.x, player.y - 50, player.display_hp, player.max_hp)
         draw_mana_bar(screen, player.x, player.y - 25, player.display_energy, 50)
         draw_hp_bar(screen, boss.x, boss.y - 50, boss.display_hp, boss.max_hp)
@@ -243,7 +241,6 @@ while running:
             menu_rect = pygame.Rect(50, HEIGHT - 200, 280, 160)
             pygame.draw.rect(screen, (0, 0, 120), menu_rect, border_radius=12)
             pygame.draw.rect(screen, WHITE, menu_rect, 3, border_radius=12)
-            draw_text(f"ENERGIE: {int(player.display_energy)} MP", font_interface, (0, 200, 255), screen, 190, HEIGHT - 180)
             
             if in_magic_menu: current_menu, current_idx, title_msg = magic_options, magic_index, "MAGIE DU CHAOS"
             elif in_special_menu: current_menu, current_idx, title_msg = special_options, special_index, "CAPACITÉ SPÉCIALE"
@@ -251,16 +248,10 @@ while running:
             
             draw_text(title_msg, font_tour, WHITE, screen, WIDTH // 2, 80)
             for i, opt in enumerate(current_menu):
-                txt_color = WHITE if i == current_idx else GRAY
+                txt_color = WHITE if i == current_idx else (150, 150, 150)
                 draw_text("> " + opt if i == current_idx else "  " + opt, font_menu, txt_color, screen, 190, HEIGHT - 140 + (i * 35))
 
-    # Overlays
-    if game_state == "START_MENU":
-        overlay = pygame.Surface((WIDTH, HEIGHT)); overlay.set_alpha(150); overlay.fill(BLACK); screen.blit(overlay, (0,0))
-        draw_text("SONIC RPG LEGACY", font_title, (0, 200, 255), screen, WIDTH // 2, HEIGHT // 3)
-        if (current_time // 500) % 2 == 0: draw_text("APPUYEZ SUR ESPACE", font_interface, WHITE, screen, WIDTH // 2, HEIGHT // 2 + 50)
-    
-    elif game_state == "STORY":
+    if game_state == "STORY":
         dialog_rect = pygame.Rect(50, HEIGHT - 150, WIDTH - 100, 120)
         pygame.draw.rect(screen, BLACK, dialog_rect); pygame.draw.rect(screen, WHITE, dialog_rect, 3)
         draw_text(story_lines[story_index], font_interface, WHITE, screen, WIDTH // 2, HEIGHT - 90)
@@ -268,10 +259,9 @@ while running:
     elif game_state == "GAME_OVER":
         overlay = pygame.Surface((WIDTH, HEIGHT)); overlay.set_alpha(200); overlay.fill(BLACK); screen.blit(overlay, (0,0))
         msg = "VICTOIRE !" if winner == "SONIC" else "GAME OVER..."
-        draw_text(msg, font_title, GREEN if winner == "SONIC" else RED, screen, WIDTH // 2, HEIGHT // 2 - 50)
+        draw_text(msg, font_title, (0, 255, 100) if winner == "SONIC" else (255, 50, 50), screen, WIDTH // 2, HEIGHT // 2 - 50)
         draw_text("APPUYEZ SUR 'R' POUR REJOUER", font_interface, WHITE, screen, WIDTH // 2, HEIGHT // 2 + 50)
 
-    # Flash final
     if flash_effect_timer > 0:
         flash_surf = pygame.Surface((WIDTH, HEIGHT)); flash_surf.fill(flash_color)
         flash_surf.set_alpha(int((flash_effect_timer / 0.5) * 255))

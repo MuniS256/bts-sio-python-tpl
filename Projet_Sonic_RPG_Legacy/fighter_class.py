@@ -61,6 +61,17 @@ class Fighter:
         
         self.rect = self.image.get_rect()
         self.rect.topleft = (self.x, self.y)
+        
+    def use_energy(self, amount):
+        if self.energy >= amount:
+            self.energy -= amount
+            return True
+        return False
+
+    def heal(self, amount):
+        self.hp += amount
+        if self.hp > self.max_hp:
+            self.hp = self.max_hp
 
     def take_damage(self, amount):
         self.hp = max(0, self.hp - amount)

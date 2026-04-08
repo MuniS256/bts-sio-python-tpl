@@ -7,8 +7,13 @@ class Fighter:
         self.max_hp = hp
         self.hp = hp
         self.display_hp = hp
-        self.attack = attack
+        
+        # --- NOUVEAU : SYSTÈME D'ÉNERGIE ---
+        self.max_energy = energy
         self.energy = energy
+        self.display_energy = energy # Pour l'effet de remplissage fluide
+        
+        self.attack = attack
         
         # Positionnement
         self.x = x
@@ -16,33 +21,25 @@ class Fighter:
         self.original_x = x
         self.target_x = x
         
-        # --- SYSTÈME D'ANIMATION (PRÊT POUR LES SPRITE SHEETS) ---
+        # --- SYSTÈME D'ANIMATION ---
         self.frame_list = []
         self.frame_index = 0
         self.update_time = pygame.time.get_ticks()
-        self.animation_speed = 150 # Vitesse en millisecondes
+        self.animation_speed = 150 
         
         try:
             full_sheet = pygame.image.load(image_path).convert_alpha()
-            
-            # On calcule la largeur d'une seule image (totale / nombre de frames)
             sheet_width = full_sheet.get_width()
             sheet_height = full_sheet.get_height()
             self.frame_width = sheet_width // frames
             
-            # On découpe chaque frame et on la met dans la liste
             for i in range(frames):
-                # Création d'une surface vide transparente
                 temp_surface = pygame.Surface((self.frame_width, sheet_height), pygame.SRCALPHA)
-                # On "capture" le morceau de l'image globale
                 temp_surface.blit(full_sheet, (0, 0), (i * self.frame_width, 0, self.frame_width, sheet_height))
-                # Redimensionnement (150x150 pour ton jeu)
                 scaled_image = pygame.transform.scale(temp_surface, (150, 150))
                 self.frame_list.append(scaled_image)
             
             self.image = self.frame_list[self.frame_index]
-            
-            # Création du Flash Rouge basé sur la première frame
             mask = pygame.mask.from_surface(self.image)
             self.flash_image = mask.to_surface(setcolor=(255, 0, 0), unsetcolor=(0, 0, 0, 0))
             
@@ -78,7 +75,7 @@ class Fighter:
         self.flash_timer = self.flash_duration
 
     def update(self, dt):
-        # 1. GESTION DE L'ANIMATION (Boucle sur les frames)
+        # 1. GESTION DE L'ANIMATION
         if len(self.frame_list) > 1:
             if pygame.time.get_ticks() - self.update_time > self.animation_speed:
                 self.update_time = pygame.time.get_ticks()
@@ -89,10 +86,18 @@ class Fighter:
         if self.flash_timer > 0:
             self.flash_timer -= dt
 
-        # 3. Animation de la barre de vie
+        # 3. Animation de la barre de vie (Lissage)
         self.display_hp += (self.hp - self.display_hp) * 0.1
 
-        # 4. Logique de mouvement (Dash Attaque)
+        # --- 4. BONUS : RÉGÉNÉRATION ET ANIMATION MANA ---
+        # Régénération passive (petit à petit à chaque frame)
+        if self.energy < self.max_energy:
+            self.energy += 2 * dt # Récupère 2 MP par seconde
+            
+        # Lissage de la barre de mana (effet fluide comme la vie)
+        self.display_energy += (self.energy - self.display_energy) * 0.1
+
+        # 5. Logique de mouvement (Dash Attaque)
         if self.is_attacking:
             direction = 1 if self.x < self.target_x else -1
             self.x += 20 * direction
@@ -108,9 +113,7 @@ class Fighter:
         self.rect.topleft = (self.x, self.y)
 
     def draw(self, screen):
-        # Si on flashe, on affiche l'image rouge, sinon l'image d'animation actuelle
         if self.flash_timer > 0:
-            # On recrée un masque flash pour la frame actuelle si c'est une animation
             mask = pygame.mask.from_surface(self.image)
             flash = mask.to_surface(setcolor=(255, 0, 0), unsetcolor=(0, 0, 0, 0))
             screen.blit(flash, (self.x, self.y))

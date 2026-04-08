@@ -21,7 +21,7 @@ import pygame
 import sys
 from settings import *
 from fighter_class import Fighter
-from ui import draw_hp_bar, draw_mana_bar, draw_text # Import de la nouvelle barre
+from ui import draw_hp_bar, draw_mana_bar, draw_text
 
 # 1. INITIALISATION
 pygame.init()
@@ -38,6 +38,7 @@ except:
     background.fill((20, 40, 20))
 
 # 2. CRÉATION DES PERSONNAGES
+# Note: On passe l'énergie max (50) qui sera utilisée pour display_energy dans Fighter
 player = Fighter("Sonic", 100, 20, 50, SONIC_SPRITE, 200, 400, frames=1)
 boss = Fighter("Eclipse", 120, 15, 50, ENEMY_SPRITE, 900, 400, frames=1)
 
@@ -92,11 +93,15 @@ while running:
 
             elif game_state == "GAME_OVER":
                 if event.key == pygame.K_r:
+                    # Reset complet des stats
                     player.hp = player.max_hp
                     player.display_hp = player.max_hp
                     player.energy = 50
+                    player.display_energy = 50
                     boss.hp = boss.max_hp
                     boss.display_hp = boss.max_hp
+                    boss.energy = 50
+                    boss.display_energy = 50
                     player.x, player.y = player.original_x, player.original_y
                     boss.x, boss.y = boss.original_x, boss.original_y
                     story_index = 0
@@ -137,7 +142,7 @@ while running:
                                 in_magic_menu = False
                                 wait_timer = 0
                                 game_state = "WAIT_AFTER_MAGIC"
-                        elif magic_index == 2:
+                        elif magic_index == 2: # RETOUR
                             in_magic_menu = False
 
     # --- LOGIQUE DE COMBAT ---
@@ -176,7 +181,7 @@ while running:
         elif boss.hp <= 0: game_state = "GAME_OVER"; winner = "SONIC"
 
     # --- AFFICHAGE ---
-    player.update(dt)
+    player.update(dt) # Gère maintenant la régénération de mana et l'animation display_energy
     boss.update(dt)
     screen.blit(background, (0, 0)) 
 
@@ -198,14 +203,14 @@ while running:
     else:
         player.draw(screen); boss.draw(screen)
         
-        # UI SONIC (Barre HP + Barre MP + Chiffres)
+        # UI SONIC (On utilise display_hp et display_energy pour la fluidité)
         draw_hp_bar(screen, player.x, player.y - 50, player.display_hp, player.max_hp)
-        draw_mana_bar(screen, player.x, player.y - 25, player.energy, 50)
+        draw_mana_bar(screen, player.x, player.y - 25, player.display_energy, 50)
         draw_text(player.name, font_interface, WHITE, screen, player.x + 75, player.y - 75)
         
-        # UI BOSS (Barre HP + Barre MP + Chiffres)
+        # UI BOSS
         draw_hp_bar(screen, boss.x, boss.y - 50, boss.display_hp, boss.max_hp)
-        draw_mana_bar(screen, boss.x, boss.y - 25, boss.energy, 50)
+        draw_mana_bar(screen, boss.x, boss.y - 25, boss.display_energy, 50)
         draw_text(boss.name, font_interface, RED, screen, boss.x + 75, boss.y - 75)
 
         if game_state == "PLAYER_TURN":
@@ -213,7 +218,8 @@ while running:
             pygame.draw.rect(screen, (0, 0, 120), menu_rect, border_radius=12)
             pygame.draw.rect(screen, WHITE, menu_rect, 3, border_radius=12)
             
-            draw_text(f"ENERGIE: {int(player.energy)} MP", font_interface, (0, 200, 255), screen, 190, HEIGHT - 180)
+            # Texte MP qui suit aussi l'animation
+            draw_text(f"ENERGIE: {int(player.display_energy)} MP", font_interface, (0, 200, 255), screen, 190, HEIGHT - 180)
             
             current_menu = magic_options if in_magic_menu else options
             current_idx = magic_index if in_magic_menu else menu_index

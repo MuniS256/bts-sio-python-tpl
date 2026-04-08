@@ -95,12 +95,32 @@ while running:
 
             elif game_state == "GAME_OVER":
                 if event.key == pygame.K_r:
+                    # 1. RESET DES STATS (On remet tout à neuf)
                     player.hp = player.max_hp
+                    player.display_hp = player.max_hp
                     player.energy = 50
+                    player.display_energy = 50
+                    
                     boss.hp = boss.max_hp
+                    boss.display_hp = boss.max_hp
                     boss.energy = 50
-                    game_state = "START_MENU"
+                    boss.display_energy = 50
+                    
+                    # 2. RESET DES POSITIONS
+                    player.x = player.original_x
+                    boss.x = boss.original_x
+                    player.is_attacking = False
+                    boss.is_attacking = False
+                    
+                    # 3. RESET DES VARIABLES DE CONTRÔLE (Important !)
+                    story_index = 0
                     winner = None
+                    wait_timer = 0
+                    has_hit = False
+                    in_magic_menu = False
+                    
+                    # 4. RETOUR AU MENU
+                    game_state = "START_MENU"
 
             elif game_state == "PLAYER_TURN":
                 if not in_magic_menu:

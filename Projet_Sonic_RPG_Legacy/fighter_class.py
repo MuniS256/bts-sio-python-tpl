@@ -97,7 +97,7 @@ class Fighter:
             self.energy = min(regen_cap, self.energy + 0.5 * dt)
             
         # Lissage de la barre de mana
-        self.display_energy += (self.energy - self.display_energy) * 0.1
+        self.display_energy += (self.energy - self.display_energy) * 0.15
 
         # 5. Logique de mouvement
         if self.is_attacking:

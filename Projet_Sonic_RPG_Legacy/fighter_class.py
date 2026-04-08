@@ -8,10 +8,10 @@ class Fighter:
         self.hp = hp
         self.display_hp = hp
         
-        # --- NOUVEAU : SYSTÈME D'ÉNERGIE ---
+        # --- SYSTÈME D'ÉNERGIE ÉQUILIBRÉ ---
         self.max_energy = energy
         self.energy = energy
-        self.display_energy = energy # Pour l'effet de remplissage fluide
+        self.display_energy = energy 
         
         self.attack = attack
         
@@ -86,18 +86,20 @@ class Fighter:
         if self.flash_timer > 0:
             self.flash_timer -= dt
 
-        # 3. Animation de la barre de vie (Lissage)
+        # 3. Animation de la barre de vie
         self.display_hp += (self.hp - self.display_hp) * 0.1
 
-        # --- 4. BONUS : RÉGÉNÉRATION ET ANIMATION MANA ---
-        # Régénération passive (petit à petit à chaque frame)
-        if self.energy < self.max_energy:
-            self.energy += 2 * dt # Récupère 2 MP par seconde
+        # --- 4. RÉGÉNÉRATION LIMITÉE (ANTI-CAMPING) ---
+        # On limite la régénération auto à 60% du max (ex: 30 MP sur 50)
+        regen_cap = self.max_energy * 0.6
+        if self.energy < regen_cap:
+            # Vitesse réduite (0.5 MP par seconde)
+            self.energy = min(regen_cap, self.energy + 0.5 * dt)
             
-        # Lissage de la barre de mana (effet fluide comme la vie)
+        # Lissage de la barre de mana
         self.display_energy += (self.energy - self.display_energy) * 0.1
 
-        # 5. Logique de mouvement (Dash Attaque)
+        # 5. Logique de mouvement
         if self.is_attacking:
             direction = 1 if self.x < self.target_x else -1
             self.x += 20 * direction

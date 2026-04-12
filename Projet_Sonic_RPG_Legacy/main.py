@@ -39,14 +39,14 @@ music_battle = ""
 
 try:
     # Chemins des fichiers
-    music_menu = "Projet_Sonic_RPG_Legacy/assets/musics/title_theme.mp3"
-    music_battle = "Projet_Sonic_RPG_Legacy/assets/musics/battle_theme.mp3"
+    music_menu = "Projet_Sonic_RPG_Legacy/assets/musics/SA2_menuB.mp3"
+    music_battle = "Projet_Sonic_RPG_Legacy/assets/musics/grandia2_battle_theme.mp3"
     
     # Chargement des bruitages
-    snd_attack = pygame.mixer.Sound("Projet_Sonic_RPG_Legacy/assets/sounds/attack.wav")
-    snd_heal = pygame.mixer.Sound("Projet_Sonic_RPG_Legacy/assets/sounds/heal.wav")
-    snd_hit = pygame.mixer.Sound("Projet_Sonic_RPG_Legacy/assets/sounds/hit.wav")
-    snd_special = pygame.mixer.Sound("Projet_Sonic_RPG_Legacy/assets/sounds/special.wav")
+    snd_attack = pygame.mixer.Sound("Projet_Sonic_RPG_Legacy/assets/sounds/heavy_punch.mp3")
+    snd_heal = pygame.mixer.Sound("Projet_Sonic_RPG_Legacy/assets/sounds/healing.mp3")
+    snd_hit = pygame.mixer.Sound("Projet_Sonic_RPG_Legacy/assets/sounds/attackS.mp3")
+    snd_special = pygame.mixer.Sound("Projet_Sonic_RPG_Legacy/assets/sounds/Ding.mp3")
 except Exception as e:
     print(f"Note : Certains fichiers audio sont manquants ou introuvables. Erreur : {e}")
 

@@ -32,8 +32,7 @@ pygame.display.set_caption("Sonic RPG Legacy")
 clock = pygame.time.Clock()
 
 # --- CHARGEMENT DES ASSETS SONORES ---
-# On définit les variables par défaut pour éviter le NameError
-snd_attack = snd_heal = snd_hit = snd_special = None
+snd_attack = snd_heal = snd_hit = snd_special = snd_move = snd_select = None
 music_menu = ""
 music_battle = ""
 
@@ -47,6 +46,8 @@ try:
     snd_heal = pygame.mixer.Sound("Projet_Sonic_RPG_Legacy/assets/sounds/healing.mp3")
     snd_hit = pygame.mixer.Sound("Projet_Sonic_RPG_Legacy/assets/sounds/attackS.mp3")
     snd_special = pygame.mixer.Sound("Projet_Sonic_RPG_Legacy/assets/sounds/Ding.mp3")
+    snd_move = pygame.mixer.Sound("Projet_Sonic_RPG_Legacy/assets/sounds/switch_menu.wav")
+    snd_select = pygame.mixer.Sound("Projet_Sonic_RPG_Legacy/assets/sounds/enter_menu.wav")
 except Exception as e:
     print(f"Note : Certains fichiers audio sont manquants ou introuvables. Erreur : {e}")
 
@@ -67,7 +68,7 @@ boss = Fighter("Eclipse", 120, 15, 50, ENEMY_SPRITE, 900, 400, frames=1)
 
 # --- VARIABLES DE CONTRÔLE ---
 game_state = "START_MENU" 
-current_music = "" # Pour éviter de relancer la musique en boucle
+current_music = "" 
 
 story_index = 0
 story_lines = [
@@ -109,7 +110,7 @@ font_title = pygame.font.SysFont("Impact", 85)
 # Fonction pour changer de musique proprement
 def change_music(music_file):
     global current_music
-    if current_music != music_file:
+    if current_music != music_file and music_file != "":
         try:
             pygame.mixer.music.load(music_file)
             pygame.mixer.music.set_volume(0.4)
@@ -135,6 +136,14 @@ while running:
             running = False
         
         if event.type == pygame.KEYDOWN:
+            # --- SONS DE NAVIGATION (UNIQUEMENT DANS LE MENU PRINCIPAL) ---
+            if game_state == "START_MENU":
+                if event.key in [pygame.K_UP, pygame.K_DOWN]:
+                    if snd_move: snd_move.play()
+                
+                if event.key in [pygame.K_SPACE, pygame.K_RETURN]:
+                    if snd_select: snd_select.play()
+
             # --- LOGIQUE MENU PRINCIPAL ---
             if game_state == "START_MENU":
                 if event.key == pygame.K_UP:
@@ -183,6 +192,8 @@ while running:
                             game_state = "PREPARE_SOIN"
                         elif magic_index == 1 and player.use_energy(20): 
                             game_state = "PREPARE_ATTAQUE"
+                        elif magic_index == 2: # Retour
+                            in_magic_menu = False
                         in_magic_menu = False
                     elif event.key == pygame.K_ESCAPE: in_magic_menu = False
 
@@ -193,6 +204,8 @@ while running:
                         if special_index == 0 and player.use_energy(40):
                             wait_timer = 0
                             game_state = "PREPARE_SUPER_DASH"
+                        elif special_index == 1: # Retour
+                            in_special_menu = False
                         in_special_menu = False
                     elif event.key == pygame.K_ESCAPE: in_special_menu = False
 

@@ -5,16 +5,16 @@ class Player(pygame.sprite.Sprite):
 		super().__init__()
 		self.attack_animation = False
 		self.sprites = []
-		self.sprites.append(pygame.image.load('Animation_Sprite/attack_1.png'))
-		self.sprites.append(pygame.image.load('Animation_Sprite/attack_2.png'))
-		self.sprites.append(pygame.image.load('Animation_Sprite/attack_3.png'))
-		self.sprites.append(pygame.image.load('Animation_Sprite/attack_4.png'))
-		self.sprites.append(pygame.image.load('Animation_Sprite/attack_5.png'))
-		self.sprites.append(pygame.image.load('Animation_Sprite/attack_6.png'))
-		self.sprites.append(pygame.image.load('Animation_Sprite/attack_7.png'))
-		self.sprites.append(pygame.image.load('Animation_Sprite/attack_8.png'))
-		self.sprites.append(pygame.image.load('Animation_Sprite/attack_9.png'))
-		self.sprites.append(pygame.image.load('Animation_Sprite/attack_10.png'))
+		self.sprites.append(pygame.image.load('Animation_Sprite/animation-master/attack_1.png'))
+		self.sprites.append(pygame.image.load('Animation_Sprite/animation-master/attack_2.png'))
+		self.sprites.append(pygame.image.load('Animation_Sprite/animation-master/attack_3.png'))
+		self.sprites.append(pygame.image.load('Animation_Sprite/animation-master/attack_4.png'))
+		self.sprites.append(pygame.image.load('Animation_Sprite/animation-master/attack_5.png'))
+		self.sprites.append(pygame.image.load('Animation_Sprite/animation-master/attack_6.png'))
+		self.sprites.append(pygame.image.load('Animation_Sprite/animation-master/attack_7.png'))
+		self.sprites.append(pygame.image.load('Animation_Sprite/animation-master/attack_8.png'))
+		self.sprites.append(pygame.image.load('Animation_Sprite/animation-master/attack_9.png'))
+		self.sprites.append(pygame.image.load('Animation_Sprite/animation-master/attack_10.png'))
 		self.current_sprite = 0
 		self.image = self.sprites[self.current_sprite]
 

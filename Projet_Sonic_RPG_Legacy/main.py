@@ -20,14 +20,25 @@ if __name__ == "__main__":
 import pygame
 import sys
 import random
+import os  # Ajouté pour la qualité du rendu
 from settings import *
 from fighter_class import Fighter
 from ui import draw_hp_bar, draw_mana_bar, draw_text, negative_surface 
 
 # 1. INITIALISATION
+# Cette ligne doit être AVANT pygame.init() pour lisser les pixels en mode plein écran
+os.environ['SDL_RENDER_SCALE_QUALITY'] = '1'
+
 pygame.init()
-pygame.mixer.init() # Initialisation du son
-screen = pygame.display.set_mode((WIDTH, HEIGHT)) 
+pygame.mixer.init()
+
+# Récupération de la résolution de l'écran pour ajuster les polices
+info = pygame.display.Info()
+screen_res = (info.current_w, info.current_h)
+
+# Configuration Plein Écran avec mise à l'échelle matérielle (SCALED)
+# Le flag DOUBLEBUF aide à éviter les saccades visuelles
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN | pygame.SCALED | pygame.DOUBLEBUF)
 pygame.display.set_caption("Sonic RPG Legacy")
 clock = pygame.time.Clock()
 
@@ -37,11 +48,9 @@ music_menu = ""
 music_battle = ""
 
 try:
-    # Chemins des fichiers
     music_menu = "Projet_Sonic_RPG_Legacy/assets/musics/SA2_menuB.mp3"
     music_battle = "Projet_Sonic_RPG_Legacy/assets/musics/grandia2_battle_theme.mp3"
     
-    # Chargement des bruitages
     snd_attack = pygame.mixer.Sound("Projet_Sonic_RPG_Legacy/assets/sounds/heavy_punch.mp3")
     snd_heal = pygame.mixer.Sound("Projet_Sonic_RPG_Legacy/assets/sounds/healing.mp3")
     snd_hit = pygame.mixer.Sound("Projet_Sonic_RPG_Legacy/assets/sounds/attackS.mp3")
@@ -49,7 +58,7 @@ try:
     snd_move = pygame.mixer.Sound("Projet_Sonic_RPG_Legacy/assets/sounds/switch_menu.wav")
     snd_select = pygame.mixer.Sound("Projet_Sonic_RPG_Legacy/assets/sounds/enter_menu.wav")
 except Exception as e:
-    print(f"Note : Certains fichiers audio sont manquants ou introuvables. Erreur : {e}")
+    print(f"Note : Certains fichiers audio sont manquants. Erreur : {e}")
 
 # --- CHARGEMENT DES ASSETS IMAGES ---
 try:
@@ -69,7 +78,6 @@ boss = Fighter("Eclipse", 120, 15, 50, ENEMY_SPRITE, 900, 400, frames=1)
 # --- VARIABLES DE CONTRÔLE ---
 game_state = "START_MENU" 
 current_music = "" 
-
 story_index = 0
 story_lines = [
     "Sonic: Eclipse ! Rend-moi l'Emeraude du Chaos tout de suite !",
@@ -80,7 +88,6 @@ story_lines = [
 
 main_menu_options = ["COMMENCER L'AVENTURE", "COMMANDES", "QUITTER"]
 main_menu_index = 0
-
 has_hit = False
 wait_timer = 0 
 menu_index = 0 
@@ -95,19 +102,18 @@ special_options = ["SUPER DASH (40 MP)", "RETOUR"]
 in_special_menu = False
 special_index = 0
 
-# --- EFFETS ---
 flash_effect_timer = 0
 flash_color = (255, 255, 255)
 negative_timer = 0  
 time_crystals = []  
 
-# Polices
-font_interface = pygame.font.SysFont("Arial", 28, bold=True)
-font_tour = pygame.font.SysFont("Arial", 40, bold=True)
-font_menu = pygame.font.SysFont("Verdana", 26, bold=True)
-font_title = pygame.font.SysFont("Impact", 85)
+# Polices : On multiplie la taille par le ratio de l'écran pour éviter le flou du texte
+font_ratio =(info.current_h / HEIGHT) * 0.8
+font_interface = pygame.font.SysFont("Arial", int(28 * font_ratio), bold=True)
+font_tour = pygame.font.SysFont("Arial", int(40 * font_ratio), bold=True)
+font_menu = pygame.font.SysFont("Verdana", int(26 * font_ratio), bold=True)
+font_title = pygame.font.SysFont("Impact", int(85 * font_ratio))
 
-# Fonction pour changer de musique proprement
 def change_music(music_file):
     global current_music
     if current_music != music_file and music_file != "":
@@ -125,7 +131,6 @@ while running:
     dt = clock.tick(FPS) / 1000.0 
     current_time = pygame.time.get_ticks()
 
-    # --- GESTION MUSIQUE PAR ÉTAT ---
     if game_state == "START_MENU":
         change_music(music_menu)
     elif game_state == "PLAYER_TURN" or game_state == "STORY":
@@ -136,12 +141,15 @@ while running:
             running = False
         
         if event.type == pygame.KEYDOWN:
-            # --- SONS DE NAVIGATION (UNIQUEMENT DANS LE MENU PRINCIPAL) ---
+            # --- RACCOURCI PLEIN ÉCRAN (ALT + ENTRÉE) ---
+            if event.key == pygame.K_RETURN and (event.mod & pygame.KMOD_ALT):
+                pygame.display.toggle_fullscreen()
+
+            # --- SONS DE NAVIGATION ---
             if game_state == "START_MENU":
                 if event.key in [pygame.K_UP, pygame.K_DOWN]:
                     if snd_move: snd_move.play()
-                
-                if event.key in [pygame.K_SPACE, pygame.K_RETURN]:
+                if event.key in [pygame.K_SPACE, pygame.K_RETURN] and not (event.mod & pygame.KMOD_ALT):
                     if snd_select: snd_select.play()
 
             # --- LOGIQUE MENU PRINCIPAL ---
@@ -150,11 +158,9 @@ while running:
                     main_menu_index = (main_menu_index - 1) % len(main_menu_options)
                 elif event.key == pygame.K_DOWN:
                     main_menu_index = (main_menu_index + 1) % len(main_menu_options)
-                elif event.key in [pygame.K_SPACE, pygame.K_RETURN]:
-                    if main_menu_index == 0: 
-                        game_state = "STORY"
-                    elif main_menu_index == 2: 
-                        running = False
+                elif event.key in [pygame.K_SPACE, pygame.K_RETURN] and not (event.mod & pygame.KMOD_ALT):
+                    if main_menu_index == 0: game_state = "STORY"
+                    elif main_menu_index == 2: running = False
             
             elif game_state == "STORY":
                 if event.key in [pygame.K_SPACE, pygame.K_RETURN]:
@@ -188,12 +194,9 @@ while running:
                     if event.key == pygame.K_UP: magic_index = (magic_index - 1) % len(magic_options)
                     elif event.key == pygame.K_DOWN: magic_index = (magic_index + 1) % len(magic_options)
                     elif event.key in [pygame.K_SPACE, pygame.K_RETURN]:
-                        if magic_index == 0 and player.use_energy(10): 
-                            game_state = "PREPARE_SOIN"
-                        elif magic_index == 1 and player.use_energy(20): 
-                            game_state = "PREPARE_ATTAQUE"
-                        elif magic_index == 2: # Retour
-                            in_magic_menu = False
+                        if magic_index == 0 and player.use_energy(10): game_state = "PREPARE_SOIN"
+                        elif magic_index == 1 and player.use_energy(20): game_state = "PREPARE_ATTAQUE"
+                        elif magic_index == 2: in_magic_menu = False
                         in_magic_menu = False
                     elif event.key == pygame.K_ESCAPE: in_magic_menu = False
 
@@ -204,8 +207,7 @@ while running:
                         if special_index == 0 and player.use_energy(40):
                             wait_timer = 0
                             game_state = "PREPARE_SUPER_DASH"
-                        elif special_index == 1: # Retour
-                            in_special_menu = False
+                        elif special_index == 1: in_special_menu = False
                         in_special_menu = False
                     elif event.key == pygame.K_ESCAPE: in_special_menu = False
 
@@ -289,7 +291,7 @@ while running:
     if game_state != "START_MENU":
         player.draw(screen); boss.draw(screen)
 
-    # --- UI MENU PRINCIPAL ---
+    # --- UI ---
     if game_state == "START_MENU":
         overlay = pygame.Surface((WIDTH, HEIGHT)); overlay.set_alpha(180); overlay.fill((0, 0, 20)) 
         screen.blit(overlay, (0, 0))
@@ -300,9 +302,8 @@ while running:
 
         for i, opt in enumerate(main_menu_options):
             color = (0, 255, 255) if i == main_menu_index else (100, 100, 100)
-            draw_text((">> " if i == main_menu_index else "   ") + opt, font_menu, color, screen, WIDTH // 2, HEIGHT // 2 + 30 + (i * 60))
+            draw_text((">> " if i == main_menu_index else "    ") + opt, font_menu, color, screen, WIDTH // 2, HEIGHT // 2 + 30 + (i * 60))
 
-    # --- UI COMBAT ---
     elif game_state not in ["STORY"]:
         draw_hp_bar(screen, player.x, player.y - 50, player.display_hp, player.max_hp)
         draw_mana_bar(screen, player.x, player.y - 25, player.display_energy, 50)
@@ -310,17 +311,30 @@ while running:
         draw_mana_bar(screen, boss.x, boss.y - 25, boss.display_energy, 50)
 
         if game_state == "PLAYER_TURN":
-            pygame.draw.rect(screen, (0, 0, 120), (50, HEIGHT - 200, 280, 160), border_radius=12)
-            pygame.draw.rect(screen, WHITE, (50, HEIGHT - 200, 280, 160), 3, border_radius=12)
+            # --- AJUSTEMENT DU CADRE BLEU (Plus large et plus haut pour les nouvelles polices) ---
+            menu_width = 350  # Augmenté de 280 à 350
+            menu_height = 200 # Augmenté de 160 à 200
+            menu_x = 50
+            menu_y = HEIGHT - 240 # Remonté un peu pour ne pas coller au bord
             
-            if in_magic_menu: current_menu, current_idx, title_msg = magic_options, magic_index, "MAGIE DU CHAOS"
-            elif in_special_menu: current_menu, current_idx, title_msg = special_options, special_index, "CAPACITÉ SPÉCIALE"
-            else: current_menu, current_idx, title_msg = options, menu_index, "CHOISIS TON ACTION"
+            pygame.draw.rect(screen, (0, 0, 120), (menu_x, menu_y, menu_width, menu_height), border_radius=12)
+            pygame.draw.rect(screen, WHITE, (menu_x, menu_y, menu_width, menu_height), 3, border_radius=12)
             
+            if in_magic_menu: 
+                current_menu, current_idx, title_msg = magic_options, magic_index, "MAGIE DU CHAOS"
+            elif in_special_menu: 
+                current_menu, current_idx, title_msg = special_options, special_index, "CAPACITÉ SPÉCIALE"
+            else: 
+                current_menu, current_idx, title_msg = options, menu_index, "CHOISIS TON ACTION"
+            
+            # Titre du tour (centré en haut de l'écran)
             draw_text(title_msg, font_tour, WHITE, screen, WIDTH // 2, 80)
+            
+            # Affichage des options dans le cadre
             for i, opt in enumerate(current_menu):
                 txt_color = WHITE if i == current_idx else (150, 150, 150)
-                draw_text(("> " if i == current_idx else "  ") + opt, font_menu, txt_color, screen, 190, HEIGHT - 140 + (i * 35))
+                # On ajuste le X (170 au lieu de 190) et l'espacement Y (45 au lieu de 35)
+                draw_text(("> " if i == current_idx else "  ") + opt, font_menu, txt_color, screen, menu_x + 120, (menu_y + 50) + (i * 45))
 
     if game_state == "STORY":
         pygame.draw.rect(screen, BLACK, (50, HEIGHT - 150, WIDTH - 100, 120))
@@ -332,7 +346,6 @@ while running:
         draw_text("VICTOIRE !" if winner == "SONIC" else "GAME OVER...", font_title, (0, 255, 100) if winner == "SONIC" else (255, 50, 50), screen, WIDTH // 2, HEIGHT // 2 - 50)
         draw_text("APPUYEZ SUR 'R' POUR REJOUER", font_interface, WHITE, screen, WIDTH // 2, HEIGHT // 2 + 50)
 
-    # Effet de flash
     if flash_effect_timer > 0:
         flash_surf = pygame.Surface((WIDTH, HEIGHT)); flash_surf.fill(flash_color)
         flash_surf.set_alpha(int((flash_effect_timer / 0.5) * 255))
